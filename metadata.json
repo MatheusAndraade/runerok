@@ -1,0 +1,6 @@
+{
+  "name": "Runerok",
+  "description": "Um RPG Idle 2.5D inspirado em Ragnarok Online totalmente em português com combate automático, evolução de atributos, refino de equipamentos, coleção de cartas e progresso offline.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
