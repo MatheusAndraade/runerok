@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { SaveData, EquipmentSlot, InventoryItem, SkillRule } from './types/game';
 import { GameEngine } from './core/GameEngine';
-import { SaveManager } from './systems/SaveManager';
 import { OfflineEngine, OfflineResult } from './systems/OfflineEngine';
 import { CombatCalculator } from './combat/CombatCalculator';
 import { AudioManager } from './core/AudioManager';
 
 import { StartMenu } from './components/StartMenu';
-import { HeaderHUD } from './components/hud/HeaderHUD';
-import { IdleStatsBar } from './components/hud/IdleStatsBar';
-import { BottomNav } from './components/hud/BottomNav';
+import { GamePanels } from './components/hud/GamePanels';
 import { CanvasView } from './components/CanvasView';
 import { OrientationOverlay } from './components/OrientationOverlay';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -22,7 +19,6 @@ import { WorldMapWindow } from './components/windows/WorldMapWindow';
 import { MonsterBookWindow } from './components/windows/MonsterBookWindow';
 import { CardCollectionWindow } from './components/windows/CardCollectionWindow';
 import { RefineWindow } from './components/windows/RefineWindow';
-import { SaveManagerWindow } from './components/windows/SaveManagerWindow';
 import { SettingsWindow } from './components/windows/SettingsWindow';
 import { DevModeWindow } from './components/windows/DevModeWindow';
 import { OfflineModal } from './components/windows/OfflineModal';
@@ -115,12 +111,6 @@ export function GameContainer({ initialSave, onExitToMenu }: { initialSave: Save
     return res;
   };
 
-  const handleLoadSave = (newSave: SaveData) => {
-    setSaveData(newSave);
-    engine.init(newSave);
-    SaveManager.saveGame(newSave);
-  };
-
   const handleDevAddExp = (base: number, job: number) => {
     engine.addExp(base, job);
     setSaveData({ ...saveData });
@@ -160,7 +150,7 @@ export function GameContainer({ initialSave, onExitToMenu }: { initialSave: Save
   };
 
   return (
-    <div className="w-screen h-screen bg-slate-950 flex flex-col overflow-hidden font-sans select-none relative">
+    <div className="ro-game-shell w-screen h-screen flex flex-col overflow-hidden font-sans select-none relative">
       {/* Aviso para Girar Smartphone caso esteja em Retrato */}
       <OrientationOverlay />
 
@@ -172,27 +162,20 @@ export function GameContainer({ initialSave, onExitToMenu }: { initialSave: Save
         />
       )}
 
-      {/* Barra de HUD Superior */}
-      <HeaderHUD
-        saveData={saveData}
-        derivedStats={derivedStats}
-        onOpenMainMenu={onExitToMenu}
-      />
-
-      {/* Indicadores Ticker de Métricas de Idle */}
-      <IdleStatsBar />
-
-      {/* Área Principal de Renderização 2.5D do Canvas */}
-      <div className="flex-1 relative min-h-0 w-full bg-slate-900">
-        <CanvasView />
-      </div>
-
-      {/* Navegação Inferior */}
-      <BottomNav
-        activeWindow={activeWindow}
-        onToggleWindow={handleToggleWindow}
-        statPoints={saveData.character.statPoints}
-      />
+      <main className="ro-game-stage">
+        <div className="ro-canvas-stage">
+          <CanvasView />
+        </div>
+        <GamePanels
+          saveData={saveData}
+          derivedStats={derivedStats}
+          activeWindow={activeWindow}
+          onToggleWindow={handleToggleWindow}
+          onAllocateStat={handleAllocateStat}
+          onUpdateRules={handleUpdateRules}
+          onExitToMenu={onExitToMenu}
+        />
+      </main>
 
       {/* Modais das Janelas de Jogo */}
       {activeWindow === 'attributes' && (
@@ -261,14 +244,6 @@ export function GameContainer({ initialSave, onExitToMenu }: { initialSave: Save
           saveData={saveData}
           onRefineEquipped={handleRefineEquipped}
           onClose={() => handleToggleWindow('refine')}
-        />
-      )}
-
-      {(activeWindow === 'save' || activeWindow === 'saveManager') && (
-        <SaveManagerWindow
-          currentSave={saveData}
-          onLoadSave={handleLoadSave}
-          onClose={() => setActiveWindow(null)}
         />
       )}
 

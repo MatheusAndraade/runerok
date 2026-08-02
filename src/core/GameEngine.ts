@@ -373,6 +373,9 @@ export class GameEngine {
       this.targetMonsterInstanceId = targetMonster.instanceId;
 
       if (minDist <= this.derivedStats.attackRange) {
+        const dx = targetMonster.x - this.playerPos.x;
+        const dy = targetMonster.y - this.playerPos.y;
+        this.playerDir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
         this.playerState = 'ATTACKING';
       } else {
         this.playerState = 'CHASE';
@@ -450,6 +453,12 @@ export class GameEngine {
       this.targetMonsterInstanceId = null;
       return;
     }
+
+    const faceDx = target.x - this.playerPos.x;
+    const faceDy = target.y - this.playerPos.y;
+    this.playerDir = Math.abs(faceDx) > Math.abs(faceDy)
+      ? (faceDx > 0 ? 'right' : 'left')
+      : (faceDy > 0 ? 'down' : 'up');
 
     const now = Date.now();
     const attackIntervalMs = 1000 / this.derivedStats.aspd;
@@ -680,6 +689,12 @@ export class GameEngine {
           m.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
         }
       } else if (m.state === 'ATTACKING') {
+        const faceDx = this.playerPos.x - m.x;
+        const faceDy = this.playerPos.y - m.y;
+        m.direction = Math.abs(faceDx) > Math.abs(faceDy)
+          ? (faceDx > 0 ? 'right' : 'left')
+          : (faceDy > 0 ? 'down' : 'up');
+
         if (distToPlayer > m.data.attackRange + 20) {
           m.state = 'CHASE';
         } else if (now - m.lastAttackTime >= 1000 / m.data.aspd) {

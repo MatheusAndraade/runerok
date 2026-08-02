@@ -9,9 +9,6 @@ import {
   FolderOpen,
   Trash2,
   Download,
-  Upload,
-  User,
-  Sparkles,
   MapPin,
   Clock,
   Coins,
@@ -34,9 +31,6 @@ export const StartMenu: React.FC<StartMenuProps> = ({ onSelectSave }) => {
 
   // Delete modal state
   const [saveToDelete, setSaveToDelete] = useState<SaveData | null>(null);
-
-  // File import state
-  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSaves();
@@ -76,32 +70,13 @@ export const StartMenu: React.FC<StartMenuProps> = ({ onSelectSave }) => {
     await loadSaves();
   };
 
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setImportError(null);
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const text = evt.target?.result as string;
-        const imported = SaveManager.importSaveFromJSON(text);
-        if (imported) {
-          await SaveManager.saveGame(imported);
-          await loadSaves();
-          onSelectSave(imported);
-        } else {
-          setImportError('Arquivo de save inválido ou corrompido.');
-        }
-      } catch (err) {
-        setImportError('Erro ao ler arquivo de save.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
   return (
-    <div className="w-screen h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden select-none text-slate-100 font-sans">
+    <div className="ro-start-menu w-screen h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden select-none text-slate-100 font-sans">
+      <img
+        src="/game-assets/start-screen.png"
+        alt=""
+        className="ro-start-art absolute inset-0 w-full h-full object-cover pointer-events-none"
+      />
       {/* Background Animated Gradient Overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/30 via-slate-950 to-slate-950 pointer-events-none" />
 
@@ -155,63 +130,15 @@ export const StartMenu: React.FC<StartMenuProps> = ({ onSelectSave }) => {
               </span>
             </button>
 
-            {saves.length > 0 && (
-              <button
-                onClick={() => setViewMode('DELETE')}
-                className="w-full py-3 px-5 rounded-xl bg-slate-950 hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 font-medium text-xs sm:text-sm flex items-center justify-between cursor-pointer transition-all border border-slate-800 hover:border-rose-800 active:scale-98"
-              >
-                <div className="flex items-center gap-3">
-                  <Trash2 className="w-4 h-4 text-rose-400" />
-                  <span>Deletar Jogo</span>
-                </div>
-              </button>
-            )}
-
-            {/* Quick Continue if saves exist */}
-            {saves.length > 0 && (
-              <div className="pt-2 border-t border-slate-800">
-                <div className="text-[11px] font-bold text-slate-400 uppercase mb-2">Último Save Utilizado</div>
-                <div
-                  onClick={() => onSelectSave(saves[0])}
-                  className="p-3 bg-slate-950/80 hover:bg-amber-950/30 border border-amber-900/40 hover:border-amber-500 rounded-xl cursor-pointer transition-all flex items-center justify-between group"
-                >
-                  <div className="space-y-0.5">
-                    <div className="font-bold text-amber-200 text-xs sm:text-sm flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-amber-400" />
-                      <span>{saves[0].character.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-900/60 text-amber-300 border border-amber-700">
-                        Nv. {saves[0].character.baseLevel} {saves[0].character.className}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-emerald-400" />
-                        {MAPS[saves[0].currentMapId]?.name || saves[0].currentMapId}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Coins className="w-3 h-3 text-yellow-400" />
-                        {saves[0].character.zeny.toLocaleString()} Z
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-2 rounded-lg bg-amber-600 text-slate-950 group-hover:bg-amber-500 group-hover:scale-105 transition-all">
-                    <Play className="w-4 h-4 fill-current" />
-                  </div>
-                </div>
+            <button
+              onClick={() => setViewMode('DELETE')}
+              className="w-full py-3 px-5 rounded-xl bg-slate-950 hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 font-medium text-xs sm:text-sm flex items-center justify-between cursor-pointer transition-all border border-slate-800 hover:border-rose-800 active:scale-98"
+            >
+              <div className="flex items-center gap-3">
+                <Trash2 className="w-4 h-4 text-rose-400" />
+                <span>Deletar Jogo</span>
               </div>
-            )}
-
-            {/* File Import Option */}
-            <div className="pt-2 flex items-center justify-center">
-              <label className="text-xs text-slate-400 hover:text-amber-300 flex items-center gap-1.5 cursor-pointer underline underline-offset-4">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Importar Save JSON</span>
-                <input type="file" accept=".json" onChange={handleImportFile} className="hidden" />
-              </label>
-            </div>
-            {importError && (
-              <p className="text-[11px] text-rose-400 text-center font-mono">{importError}</p>
-            )}
+            </button>
           </div>
         )}
 

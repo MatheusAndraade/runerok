@@ -9,7 +9,6 @@ import {
   Award,
   Anvil,
   Settings,
-  Save,
   Code
 } from 'lucide-react';
 
@@ -29,13 +28,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeWindow, onToggleWind
     { id: 'monsterbook', label: 'Bestiário', icon: BookOpen },
     { id: 'collection', label: 'Cartas', icon: Award },
     { id: 'refine', label: 'Refino', icon: Anvil },
-    { id: 'save', label: 'Salvar', icon: Save },
     { id: 'settings', label: 'Ajustes', icon: Settings },
     { id: 'dev', label: 'Dev', icon: Code }
   ];
 
   return (
-    <div className="w-full bg-slate-900/95 border-t border-amber-900/40 backdrop-blur-md px-2 py-1.5 flex items-center justify-start sm:justify-around overflow-x-auto gap-1 text-xs select-none scrollbar-thin scrollbar-thumb-amber-800 shrink-0">
+    <div className="ro-hotbar w-full px-2 py-1.5 flex items-center justify-start sm:justify-center overflow-x-auto gap-1 text-xs select-none shrink-0">
       {navItems.map(item => {
         const Icon = item.icon;
         const isActive = activeWindow === item.id;
@@ -44,10 +42,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeWindow, onToggleWind
           <button
             key={item.id}
             onClick={() => onToggleWindow(item.id)}
-            className={`relative flex flex-col items-center justify-center px-2.5 py-1 rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 ${
+            className={`ro-hotbar-slot relative flex flex-col items-center justify-center w-14 h-12 transition-all shrink-0 cursor-pointer ${
               isActive
-                ? 'bg-amber-600/30 text-amber-200 border border-amber-500/60 shadow-lg scale-105'
-                : 'text-slate-300 hover:text-amber-200 hover:bg-slate-800/80'
+                ? 'is-active text-blue-950'
+                : 'text-slate-700 hover:text-blue-900'
             }`}
           >
             <Icon className="w-4 h-4 mb-0.5" />

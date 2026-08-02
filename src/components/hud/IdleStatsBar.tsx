@@ -21,7 +21,7 @@ export const IdleStatsBar: React.FC<IdleStatsBarProps> = ({ metrics }) => {
   };
 
   return (
-    <div className="w-full bg-slate-950/90 border-b border-slate-800 px-3 py-1 text-[11px] text-amber-200/90 flex items-center justify-around overflow-x-auto gap-3 font-mono shadow-inner select-none whitespace-nowrap">
+    <div className="ro-idle-panel w-full px-3 py-1 text-[11px] flex items-center justify-around overflow-x-auto gap-3 font-mono select-none whitespace-nowrap">
       <div className="flex items-center gap-1 text-amber-300">
         <TrendingUp className="w-3 h-3 text-amber-400 shrink-0" />
         <span>EXP/h: <strong className="text-white">{(m.expPerHour || 0).toLocaleString()}</strong></span>

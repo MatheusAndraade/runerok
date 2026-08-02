@@ -1,1 +1,678 @@
 @import "tailwindcss";
+
+:root {
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  color: #18233a;
+  background: #18221a;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  image-rendering: auto;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+/* Classic MMORPG chrome shared by the HUD and game windows. */
+.ro-game-shell {
+  background: #1d2a1f;
+  color: #17233d;
+}
+
+.ro-game-stage {
+  display: grid;
+  grid-template-columns: 285px minmax(0, 1fr) 285px;
+  grid-template-rows: minmax(0, 1fr) 72px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #18231a;
+}
+
+.ro-canvas-stage {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid #566780;
+  border-right: 1px solid #566780;
+  border-bottom: 1px solid #566780;
+}
+
+.ro-side-column {
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+  padding: 3px;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(232, 237, 245, 0.98), rgba(202, 211, 225, 0.96));
+}
+
+.ro-left-column {
+  grid-column: 1;
+}
+
+.ro-right-column {
+  grid-column: 3;
+  background: linear-gradient(270deg, rgba(232, 237, 245, 0.98), rgba(202, 211, 225, 0.96));
+}
+
+.ro-dock-window {
+  position: relative;
+  min-height: 0;
+  color: #17233d;
+  background: rgba(250, 251, 253, 0.98);
+  border: 1px solid #7184a8;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px #c6cfdd, 2px 2px 4px rgba(14, 27, 49, 0.24);
+  overflow: hidden;
+}
+
+.ro-dock-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 22px;
+  padding: 2px 6px;
+  color: #1c315b;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  background: linear-gradient(#fafdff, #d5deec);
+  border-bottom: 1px solid #8092b2;
+  box-shadow: inset 0 1px 0 #fff;
+}
+
+.ro-dock-title button,
+button.ro-dock-title {
+  cursor: pointer;
+}
+
+.ro-dock-title button {
+  width: 17px;
+  height: 17px;
+  color: #53627d;
+  font-size: 15px;
+  line-height: 14px;
+}
+
+.ro-player-panel {
+  flex: 0 0 192px;
+}
+
+.ro-skills-panel {
+  flex: 1 1 auto;
+}
+
+.ro-menu-panel {
+  flex: 0 0 170px;
+}
+
+.ro-level-badge {
+  padding: 2px 5px;
+  color: #1e3f7c;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e5ebf5;
+  border: 1px solid #a5b2c8;
+  border-radius: 2px;
+}
+
+.ro-panel-gauge {
+  height: 11px;
+  overflow: hidden;
+  background: #e0e5ed;
+  border: 1px solid #8494af;
+  border-radius: 6px;
+  box-shadow: inset 1px 1px 2px rgba(34, 49, 76, 0.35);
+}
+
+.ro-panel-gauge > div {
+  height: 100%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.ro-hp-fill {
+  background: linear-gradient(#eeffdb, #51bd55);
+}
+
+.ro-sp-fill {
+  background: linear-gradient(#e9f7ff, #62a9e9);
+}
+
+.ro-info-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 7px;
+  color: #27344e;
+  font-size: 10px;
+  background: #e7e9f0;
+  border-radius: 7px;
+}
+
+.ro-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 7px;
+}
+
+.ro-skill-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 67px;
+  padding: 3px;
+  color: #536078;
+  font-size: 9px;
+  background: #fbfcfe;
+  border: 1px dotted #aeb8c9;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.ro-skill-cell:hover,
+.ro-skill-cell.is-enabled {
+  color: #1e3f79;
+  border-style: solid;
+  border-color: #7891bb;
+  background: #edf3fd;
+}
+
+.ro-skill-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 2px;
+  font-size: 19px;
+  background: linear-gradient(#fff, #e1e6ef);
+  border: 1px solid #8998b1;
+  box-shadow: inset 1px 1px 0 #fff;
+}
+
+.ro-skill-cell small {
+  color: #68758c;
+  font-size: 8px;
+}
+
+.ro-panel-footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 3px 6px;
+  color: #45536c;
+  font-size: 9px;
+  text-align: center;
+  background: linear-gradient(#f7f9fc, #dce3ed);
+  border-top: 1px solid #a6b1c3;
+}
+
+.ro-menu-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 41px;
+  color: #273b62;
+  font-size: 10px;
+  font-weight: 700;
+  background: radial-gradient(ellipse at center, #f9fbff, #dce4f0);
+  border: 1px solid #8c9bb5;
+  border-radius: 2px;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #bdc6d4;
+  cursor: pointer;
+}
+
+.ro-menu-button:hover,
+.ro-menu-button.is-active {
+  color: #173d7e;
+  background: #d8e4f8;
+  border-color: #5574aa;
+}
+
+.ro-equipment-panel {
+  flex: 0 0 352px;
+}
+
+.ro-inventory-panel {
+  flex: 1 1 auto;
+}
+
+.ro-equip-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 53px;
+  padding: 2px;
+  color: #48566f;
+  background: radial-gradient(ellipse at center, #e4e9f2, #f9fafc 55%);
+  border: 1px solid #b0bacb;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.ro-equip-cell span {
+  font-size: 18px;
+}
+
+.ro-equip-cell small {
+  font-size: 8px;
+}
+
+.ro-stat-row {
+  display: grid;
+  grid-template-columns: 29px 1fr 19px;
+  align-items: center;
+  min-height: 23px;
+  padding: 1px 2px;
+  font-size: 10px;
+  border-bottom: 1px solid #d5dbe5;
+}
+
+.ro-stat-row strong {
+  color: #264682;
+}
+
+.ro-stat-row span {
+  text-align: right;
+}
+
+.ro-stat-row button {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  margin-left: 2px;
+  color: #31558e;
+  background: #eef3fb;
+  border: 1px solid #92a2bc;
+  border-radius: 2px;
+}
+
+.ro-stat-row button:disabled {
+  color: #a7afbc;
+  background: #eceff3;
+}
+
+.ro-derived-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 5px;
+  margin-top: 5px;
+  padding: 5px;
+  color: #31415e;
+  font-size: 9px;
+  background: #e9edf4;
+  border: 1px solid #bac3d1;
+}
+
+.ro-derived-stats span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ro-mini-inventory {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px;
+}
+
+.ro-mini-inventory button,
+.ro-empty-slot {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  font-size: 17px;
+  background: radial-gradient(ellipse at center, #dfe5ef 0 34%, #f9fafc 37%);
+  border: 1px solid #c0c8d5;
+  border-radius: 2px;
+}
+
+.ro-mini-inventory button:hover {
+  border-color: #5876ab;
+}
+
+.ro-mini-inventory small {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  padding: 0 2px;
+  color: #1c2d4e;
+  font-size: 8px;
+  background: rgba(255,255,255,0.82);
+}
+
+.ro-active-hotbar {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  background: linear-gradient(#f9fafc, #dce3ed);
+  border-top: 2px solid #7184a8;
+  box-shadow: inset 0 1px 0 #fff;
+}
+
+.ro-hotbar-handle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #334b76;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ro-active-skill {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: #68758b;
+  font-size: 23px;
+  background: radial-gradient(ellipse at center, #dfe5ef 0 35%, #fff 38%);
+  border: 1px solid #9eabc0;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #c1c9d5;
+  filter: grayscale(0.7);
+}
+
+.ro-active-skill.is-enabled {
+  color: #1c3f7c;
+  border-color: #526fa3;
+  background: radial-gradient(ellipse at center, #d6e6ff 0 38%, #fff 41%);
+  filter: none;
+}
+
+.ro-active-skill small {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  color: #243b66;
+  font-size: 9px;
+}
+
+.ro-empty-hotbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  color: #44536d;
+  font-size: 10px;
+  background: #edf1f6;
+  border: 1px solid #a5b0c2;
+}
+
+.ro-basic-info {
+  position: relative;
+  min-height: 54px;
+  color: #17233d;
+  background: linear-gradient(180deg, #ffffff 0%, #edf1f8 68%, #d7deeb 100%);
+  border-top: 1px solid #ffffff;
+  border-bottom: 2px solid #7789aa;
+  box-shadow: inset 0 0 0 1px #b5c1d6, 0 2px 5px rgba(8, 18, 31, 0.38);
+}
+
+.ro-basic-info::before,
+.ro-game-shell .fixed.inset-0 > div::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 2px;
+  height: 2px;
+  border-top: 1px dotted rgba(69, 88, 130, 0.42);
+  pointer-events: none;
+}
+
+.ro-portrait {
+  border: 1px solid #8596b8;
+  border-radius: 2px;
+  background: radial-gradient(circle at 50% 38%, #ffffff, #d8e0ef 70%);
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #aab6cc;
+}
+
+.ro-gauge {
+  border: 1px solid #7f8fae;
+  border-radius: 7px;
+  background: #dfe5ef;
+  box-shadow: inset 1px 1px 2px rgba(46, 61, 92, 0.45), 0 1px 0 #ffffff;
+}
+
+.ro-gauge > div {
+  border-right: 1px solid rgba(45, 61, 90, 0.4);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.75);
+}
+
+.ro-classic-button {
+  color: #233557;
+  border: 1px solid #7c8dad;
+  border-radius: 3px;
+  background: linear-gradient(#ffffff, #dbe2ed);
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #aeb9cb;
+}
+
+.ro-classic-button:hover {
+  background: linear-gradient(#ffffff, #cddcff);
+}
+
+.ro-idle-panel {
+  min-height: 25px;
+  color: #33415f;
+  background: linear-gradient(#f8f9fc, #dbe2ed);
+  border-bottom: 1px solid #7f8fae;
+  box-shadow: inset 0 1px 0 #ffffff;
+}
+
+.ro-idle-panel strong {
+  color: #142342 !important;
+}
+
+.ro-hotbar {
+  min-height: 60px;
+  background: linear-gradient(180deg, #f9fafc 0%, #dce2ec 100%);
+  border-top: 2px solid #7889a8;
+  box-shadow: inset 0 1px 0 #ffffff, 0 -2px 7px rgba(12, 24, 40, 0.35);
+}
+
+.ro-hotbar-slot {
+  color: #35425d;
+  border: 1px solid #9aa7bd;
+  border-radius: 2px;
+  background:
+    radial-gradient(ellipse at center, rgba(109, 128, 165, 0.2) 0 37%, transparent 39%),
+    linear-gradient(#ffffff, #e8ecf3);
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #c3cbd8;
+}
+
+.ro-hotbar-slot:hover,
+.ro-hotbar-slot.is-active {
+  border-color: #506ca3;
+  background:
+    radial-gradient(ellipse at center, rgba(81, 111, 174, 0.28) 0 37%, transparent 39%),
+    linear-gradient(#fafdff, #cbd9f1);
+}
+
+.ro-hotbar-slot svg {
+  filter: drop-shadow(0 1px 0 #ffffff);
+}
+
+/* Restyle all existing modal content without changing its game logic. */
+.ro-game-shell .fixed.inset-0 {
+  background: rgba(14, 25, 18, 0.38) !important;
+  backdrop-filter: none !important;
+}
+
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"] {
+  position: relative;
+  color: #1d2a44 !important;
+  background: linear-gradient(180deg, #ffffff, #edf1f7) !important;
+  border: 2px solid #7588ad !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 0 0 1px #c4cddd, 5px 7px 18px rgba(6, 14, 25, 0.42) !important;
+}
+
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"] > div:first-child {
+  color: #17233d !important;
+  background: linear-gradient(180deg, #f9fbff, #d4ddea) !important;
+  border-bottom: 1px solid #8999b7 !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+}
+
+.ro-game-shell .fixed.inset-0 [class*="bg-slate-950"],
+.ro-game-shell .fixed.inset-0 [class*="bg-slate-900"] {
+  background: #f6f8fb !important;
+  border-color: #b1bccf !important;
+}
+
+.ro-game-shell .fixed.inset-0 [class*="text-amber-"],
+.ro-game-shell .fixed.inset-0 [class*="text-sky-"],
+.ro-game-shell .fixed.inset-0 [class*="text-blue-"] {
+  color: #214b91 !important;
+}
+
+.ro-game-shell .fixed.inset-0 [class*="text-slate-3"],
+.ro-game-shell .fixed.inset-0 [class*="text-slate-4"],
+.ro-game-shell .fixed.inset-0 [class*="text-slate-5"] {
+  color: #56627a !important;
+}
+
+.ro-game-shell .fixed.inset-0 button:not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="bg-amber-6"]) {
+  border-radius: 3px !important;
+}
+
+/* Start screen: a restrained classic launcher window with only its three actions. */
+.ro-start-menu {
+  background: #142019 !important;
+}
+
+.ro-start-menu > div.absolute {
+  opacity: 0 !important;
+}
+
+.ro-start-art {
+  object-position: center center;
+}
+
+.ro-start-menu [class*="bg-slate-900/90"] {
+  min-height: 260px;
+  color: #1b2942 !important;
+  background: linear-gradient(#ffffff, #e9eef5) !important;
+  border: 2px solid #788caf !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 0 0 1px #c6cfdd, 7px 9px 24px rgba(5, 13, 8, 0.52) !important;
+  backdrop-filter: none !important;
+}
+
+.ro-start-menu .relative.z-10 {
+  height: 100%;
+  max-width: 490px;
+  justify-content: flex-end;
+  padding-bottom: 7vh;
+}
+
+.ro-start-menu .relative.z-10 > .text-center {
+  display: none;
+}
+
+.ro-start-menu [class*="bg-slate-900/90"] button {
+  color: #22324f !important;
+  background: linear-gradient(#ffffff, #dce3ee) !important;
+  border: 1px solid #8a99b3 !important;
+  border-radius: 3px !important;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #b9c2d1 !important;
+}
+
+.ro-start-menu [class*="bg-slate-900/90"] button:hover {
+  color: #153d80 !important;
+  background: linear-gradient(#ffffff, #ceddf6) !important;
+  border-color: #526fa7 !important;
+}
+
+.ro-start-menu h1,
+.ro-start-menu p {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+
+@media (max-width: 640px) {
+  .ro-basic-info {
+    min-height: 50px;
+  }
+
+  .ro-hotbar {
+    justify-content: flex-start;
+  }
+
+  .ro-hotbar-slot {
+    width: 50px;
+    height: 46px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .ro-game-stage {
+    grid-template-columns: 235px minmax(0, 1fr) 235px;
+  }
+
+  .ro-player-panel {
+    flex-basis: 184px;
+  }
+
+  .ro-equipment-panel {
+    flex-basis: 325px;
+  }
+
+  .ro-skill-cell {
+    min-height: 58px;
+  }
+}
+
+@media (max-height: 680px) {
+  .ro-game-stage {
+    grid-template-rows: minmax(0, 1fr) 62px;
+  }
+
+  .ro-player-panel {
+    flex-basis: 178px;
+  }
+
+  .ro-menu-panel {
+    flex-basis: 151px;
+  }
+
+  .ro-equipment-panel {
+    flex-basis: 310px;
+  }
+
+  .ro-skill-cell {
+    min-height: 49px;
+  }
+
+  .ro-active-skill {
+    width: 42px;
+    height: 42px;
+  }
+}

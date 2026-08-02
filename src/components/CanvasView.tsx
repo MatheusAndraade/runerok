@@ -87,11 +87,11 @@ export const CanvasView: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden select-none"
+      className="relative w-full h-full bg-[#253423] flex items-center justify-center overflow-hidden select-none"
     >
       <canvas
         ref={canvasRef}
-        className="w-full h-full block bg-slate-900 shadow-2xl cursor-crosshair"
+        className="w-full h-full block shadow-inner cursor-crosshair"
       />
     </div>
   );

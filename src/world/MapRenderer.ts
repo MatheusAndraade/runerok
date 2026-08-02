@@ -1,6 +1,80 @@
 import { ActiveMonster, DroppedItemInstance, MapData, Position, CombatFloatingText, AttackParticle, PlayerState } from '../types/game';
 import { ITEMS } from '../data/items';
 
+const fieldBackground = new Image();
+fieldBackground.src = '/game-assets/prontera-field.png';
+
+const spriteAtlas = new Image();
+spriteAtlas.src = '/game-assets/sprite-atlas.png';
+
+const spriteAtlasBack = new Image();
+spriteAtlasBack.src = '/game-assets/sprite-atlas-back.png';
+
+const MONSTER_SPRITES: Record<string, number> = {
+  poring: 1,
+  fabre: 2,
+  lunatic: 3,
+  pupa: 4,
+  poporing: 5,
+  rocker: 6,
+  spore: 7,
+  jiboia: 8,
+  zombie: 9,
+  skeleton: 10,
+  pecopeco: 11,
+  soldier_skeleton: 12,
+  metaller: 13,
+  orc_warrior: 14,
+  zenorc: 15,
+  high_orc: 16,
+  mummy: 17,
+  anolian: 18,
+  minorous: 19,
+  clock: 20,
+  alarm: 21,
+  injustice: 22,
+  raydric: 23,
+  golem_lava: 24,
+  doppelganger: 23
+};
+
+function drawAtlasSprite(
+  ctx: CanvasRenderingContext2D,
+  index: number,
+  x: number,
+  y: number,
+  size: number,
+  direction: 'left' | 'right' | 'up' | 'down' = 'down'
+): boolean {
+  const atlas = direction === 'up' ? spriteAtlasBack : spriteAtlas;
+  if (!atlas.complete || atlas.naturalWidth === 0) return false;
+
+  const cols = 5;
+  const rows = 5;
+  const sourceW = atlas.naturalWidth / cols;
+  const sourceH = atlas.naturalHeight / rows;
+  const col = index % cols;
+  const row = Math.floor(index / cols);
+
+  ctx.save();
+  ctx.translate(x, y);
+  if (direction === 'right') ctx.scale(-1, 1);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(
+    atlas,
+    col * sourceW,
+    row * sourceH,
+    sourceW,
+    sourceH,
+    -size / 2,
+    -size * 0.72,
+    size,
+    size
+  );
+  ctx.restore();
+  return true;
+}
+
 export class MapRenderer {
   public static renderMap(
     ctx: CanvasRenderingContext2D,
@@ -33,9 +107,13 @@ export class MapRenderer {
     const offsetY = (canvasH - mapH * scale) / 2;
 
     ctx.save();
-    // Fill dark letterbox background outside map bounds
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(0, 0, canvasW, canvasH);
+    // Extend the painted field behind the playable bounds instead of showing letterboxes.
+    if (map.theme === 'grass' && fieldBackground.complete && fieldBackground.naturalWidth > 0) {
+      ctx.drawImage(fieldBackground, 0, 0, canvasW, canvasH);
+    } else {
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(0, 0, canvasW, canvasH);
+    }
 
     // Translate and scale coordinate system to full map bounds
     ctx.translate(offsetX, offsetY);
@@ -51,7 +129,8 @@ export class MapRenderer {
 
     // 2. Draw Obstacles (Trees, Rocks, Walls, Water)
     map.obstacles.forEach(obs => {
-      MapRenderer.drawObstacle(ctx, obs);
+      // Grass maps already contain detailed foliage and rocks in the painted backdrop.
+      if (map.theme !== 'grass') MapRenderer.drawObstacle(ctx, obs);
     });
 
     // 3. Draw Dropped Items
@@ -137,6 +216,16 @@ export class MapRenderer {
 
   private static drawGround(ctx: CanvasRenderingContext2D, map: MapData, w: number, h: number) {
     if (map.theme === 'grass') {
+      if (fieldBackground.complete && fieldBackground.naturalWidth > 0) {
+        ctx.drawImage(fieldBackground, 0, 0, w, h);
+        const tint = ctx.createLinearGradient(0, 0, 0, h);
+        tint.addColorStop(0, 'rgba(255,255,210,0.04)');
+        tint.addColorStop(1, 'rgba(30,70,20,0.08)');
+        ctx.fillStyle = tint;
+        ctx.fillRect(0, 0, w, h);
+        return;
+      }
+
       // Organic Grass Base
       ctx.fillStyle = '#228be6'; // Soft river / background accent or base
       ctx.fillStyle = '#34d399';
@@ -349,8 +438,11 @@ export class MapRenderer {
     // Procedural RO monster rendering
     const bobbing = Math.sin(Date.now() / 150) * 2;
     const monsterId = m.data.id;
+    const spriteIndex = MONSTER_SPRITES[monsterId] ?? (m.data.isMvp ? 23 : 1);
+    const spriteSize = m.data.size === 'Grande' ? 82 : m.data.size === 'Pequeno' ? 64 : 72;
+    const spriteDrawn = drawAtlasSprite(ctx, spriteIndex, m.x, m.y + bobbing, spriteSize, m.direction);
 
-    if (monsterId === 'poring' || monsterId === 'poporing') {
+    if (!spriteDrawn && (monsterId === 'poring' || monsterId === 'poporing')) {
       ctx.fillStyle = isHit ? '#ffffff' : (monsterId === 'poring' ? '#fb7185' : '#4ade80');
       ctx.beginPath();
       ctx.ellipse(m.x, m.y + bobbing, 16, 14 + bobbing * 0.5, 0, 0, Math.PI * 2);
@@ -374,7 +466,7 @@ export class MapRenderer {
       ctx.arc(m.x - 5, m.y - 2 + bobbing, 2.5, 0, Math.PI * 2);
       ctx.arc(m.x + 5, m.y - 2 + bobbing, 2.5, 0, Math.PI * 2);
       ctx.fill();
-    } else if (monsterId === 'fabre') {
+    } else if (!spriteDrawn && monsterId === 'fabre') {
       // Caterpillar body
       ctx.fillStyle = isHit ? '#ffffff' : '#84cc16';
       for (let i = 0; i < 3; i++) {
@@ -389,7 +481,7 @@ export class MapRenderer {
       ctx.moveTo(m.x + 8, m.y - 4 + bobbing);
       ctx.lineTo(m.x + 13, m.y - 12 + bobbing);
       ctx.stroke();
-    } else if (monsterId === 'lunatic') {
+    } else if (!spriteDrawn && monsterId === 'lunatic') {
       // Rabbit Body
       ctx.fillStyle = isHit ? '#ffffff' : '#f8fafc';
       ctx.beginPath();
@@ -412,7 +504,7 @@ export class MapRenderer {
       ctx.arc(m.x - 4, m.y - 2 + bobbing, 2, 0, Math.PI * 2);
       ctx.arc(m.x + 4, m.y - 2 + bobbing, 2, 0, Math.PI * 2);
       ctx.fill();
-    } else if (monsterId === 'pupa') {
+    } else if (!spriteDrawn && monsterId === 'pupa') {
       ctx.fillStyle = isHit ? '#ffffff' : '#a16207';
       ctx.beginPath();
       ctx.ellipse(m.x, m.y, 11, 16, 0, 0, Math.PI * 2);
@@ -422,7 +514,7 @@ export class MapRenderer {
       ctx.beginPath();
       ctx.arc(m.x, m.y, 8, 0, Math.PI);
       ctx.stroke();
-    } else if (monsterId === 'rocker') {
+    } else if (!spriteDrawn && monsterId === 'rocker') {
       ctx.fillStyle = isHit ? '#ffffff' : '#16a34a';
       ctx.beginPath();
       ctx.ellipse(m.x, m.y + bobbing, 12, 16, 0.3, 0, Math.PI * 2);
@@ -436,7 +528,7 @@ export class MapRenderer {
       ctx.moveTo(m.x + 4, m.y + 4 + bobbing);
       ctx.lineTo(m.x + 14, m.y + 14 + bobbing);
       ctx.stroke();
-    } else if (monsterId === 'spore') {
+    } else if (!spriteDrawn && monsterId === 'spore') {
       // Mushroom Cap
       ctx.fillStyle = isHit ? '#ffffff' : '#f97316';
       ctx.beginPath();
@@ -451,7 +543,7 @@ export class MapRenderer {
       // Stem
       ctx.fillStyle = '#ffedd5';
       ctx.fillRect(m.x - 8, m.y - 4 + bobbing, 16, 12);
-    } else if (monsterId === 'pecopeco') {
+    } else if (!spriteDrawn && monsterId === 'pecopeco') {
       // Bird Body & Beak
       ctx.fillStyle = isHit ? '#ffffff' : '#eab308';
       ctx.beginPath();
@@ -463,14 +555,14 @@ export class MapRenderer {
       ctx.lineTo(m.x + 20, m.y + 2 + bobbing);
       ctx.lineTo(m.x + 10, m.y + 6 + bobbing);
       ctx.fill();
-    } else if (monsterId === 'zombie' || monsterId === 'injustice') {
+    } else if (!spriteDrawn && (monsterId === 'zombie' || monsterId === 'injustice')) {
       ctx.fillStyle = isHit ? '#ffffff' : (monsterId === 'zombie' ? '#475569' : '#1e1b4b');
       ctx.fillRect(m.x - 10, m.y - 18 + bobbing, 20, 28);
       // Glowing Eyes
       ctx.fillStyle = '#facc15';
       ctx.fillRect(m.x - 6, m.y - 12 + bobbing, 3, 3);
       ctx.fillRect(m.x + 3, m.y - 12 + bobbing, 3, 3);
-    } else if (monsterId === 'skeleton' || monsterId === 'soldier_skeleton') {
+    } else if (!spriteDrawn && (monsterId === 'skeleton' || monsterId === 'soldier_skeleton')) {
       ctx.fillStyle = isHit ? '#ffffff' : '#e2e8f0';
       ctx.beginPath();
       ctx.arc(m.x, m.y - 10 + bobbing, 8, 0, Math.PI * 2);
@@ -479,7 +571,7 @@ export class MapRenderer {
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(m.x - 4, m.y - 12 + bobbing, 3, 3);
       ctx.fillRect(m.x + 1, m.y - 12 + bobbing, 3, 3);
-    } else if (monsterId === 'orc_warrior' || monsterId === 'high_orc') {
+    } else if (!spriteDrawn && (monsterId === 'orc_warrior' || monsterId === 'high_orc')) {
       ctx.fillStyle = isHit ? '#ffffff' : (monsterId === 'high_orc' ? '#991b1b' : '#15803d');
       ctx.fillRect(m.x - 14, m.y - 22 + bobbing, 28, 34);
       // Horned Helmet
@@ -489,14 +581,14 @@ export class MapRenderer {
       ctx.fillStyle = '#fff';
       ctx.fillRect(m.x - 10, m.y - 6 + bobbing, 3, 6);
       ctx.fillRect(m.x + 7, m.y - 6 + bobbing, 3, 6);
-    } else if (monsterId === 'raydric') {
+    } else if (!spriteDrawn && monsterId === 'raydric') {
       // Dark Knight Armour
       ctx.fillStyle = isHit ? '#ffffff' : '#1e293b';
       ctx.fillRect(m.x - 14, m.y - 22 + bobbing, 28, 36);
       // Glowing Red Visor
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(m.x - 8, m.y - 16 + bobbing, 16, 3);
-    } else if (monsterId === 'golem_lava') {
+    } else if (!spriteDrawn && monsterId === 'golem_lava') {
       // Fiery Craggy Golem
       ctx.fillStyle = isHit ? '#ffffff' : '#18181b';
       ctx.beginPath();
@@ -510,7 +602,7 @@ export class MapRenderer {
       ctx.moveTo(m.x - 6, m.y + 10 + bobbing);
       ctx.lineTo(m.x + 8, m.y - 10 + bobbing);
       ctx.stroke();
-    } else if (m.data.isMvp) {
+    } else if (!spriteDrawn && m.data.isMvp) {
       // Golden aura for MVP Doppelganger
       ctx.fillStyle = isHit ? 'rgba(255, 255, 255, 0.8)' : 'rgba(234, 179, 8, 0.5)';
       ctx.beginPath();
@@ -526,7 +618,7 @@ export class MapRenderer {
       ctx.fillStyle = '#eab308';
       ctx.font = 'bold 12px font-mono';
       ctx.fillText('★ MVP ★', m.x - 24, m.y - 32);
-    } else {
+    } else if (!spriteDrawn) {
       // Generic monster sprite block
       ctx.fillStyle = isHit ? '#ffffff' : (m.data.behavior === 'AGGRESSIVE' ? '#ef4444' : '#eab308');
       ctx.beginPath();
@@ -577,27 +669,30 @@ export class MapRenderer {
     ctx.ellipse(pos.x, pos.y + 16, 18, 9, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Knight Body Representation
+    // Knight sprite
     const bob = state === 'MOVING' || state === 'CHASE' ? Math.sin(animFrame * 0.5) * 3 : 0;
     const isAttacking = state === 'ATTACKING' || state === 'CASTING';
+    const spriteDrawn = drawAtlasSprite(ctx, 0, pos.x, pos.y + bob, 84, dir);
 
-    // Cape / Armor Body
-    ctx.fillStyle = '#2563eb'; // Knight Blue Armor
-    ctx.fillRect(pos.x - 12, pos.y - 18 + bob, 24, 28);
+    if (!spriteDrawn) {
+      // Cape / Armor Body fallback
+      ctx.fillStyle = '#2563eb';
+      ctx.fillRect(pos.x - 12, pos.y - 18 + bob, 24, 28);
 
-    // Red Cape
-    ctx.fillStyle = '#dc2626';
-    ctx.fillRect(pos.x - (dir === 'left' ? -8 : 14), pos.y - 14 + bob, 8, 22);
+      // Red Cape
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(pos.x - (dir === 'left' ? -8 : 14), pos.y - 14 + bob, 8, 22);
 
-    // Silver Knight Helmet
-    ctx.fillStyle = '#94a3b8';
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y - 22 + bob, 10, 0, Math.PI * 2);
-    ctx.fill();
+      // Silver Knight Helmet
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y - 22 + bob, 10, 0, Math.PI * 2);
+      ctx.fill();
 
-    // Helmet Plume
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(pos.x - 2, pos.y - 34 + bob, 4, 8);
+      // Helmet Plume
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(pos.x - 2, pos.y - 34 + bob, 4, 8);
+    }
 
     // Sword Swing animation
     if (isAttacking) {
