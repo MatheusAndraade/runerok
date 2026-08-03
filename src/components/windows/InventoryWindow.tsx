@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { SaveData, InventoryItem, EquipmentSlot } from '../../types/game';
 import { ITEMS } from '../../data/items';
 import { Package, X, Shield } from 'lucide-react';
+import { ItemSprite } from '../ItemSprite';
+import { RARITIES } from '../../data/rarities';
 
 interface InventoryWindowProps {
   saveData: SaveData;
@@ -112,6 +114,7 @@ export const InventoryWindow: React.FC<InventoryWindowProps> = ({
                 const itemData = ITEMS[invItem.itemId];
                 if (!itemData) return null;
                 const isSelected = invItem.instanceId === selectedItemInstanceId;
+                const rarity = RARITIES[invItem.rarity || 'COMMON'];
 
                 return (
                   <button
@@ -122,8 +125,10 @@ export const InventoryWindow: React.FC<InventoryWindowProps> = ({
                         ? 'bg-amber-950/80 border-amber-500 shadow-lg scale-105'
                         : 'bg-slate-900 border-slate-800 hover:border-amber-700/50'
                     }`}
+                    style={{ borderColor: rarity.color, boxShadow: isSelected ? `0 0 12px ${rarity.color}88` : undefined }}
+                    title={`${itemData.name} • ${rarity.label}`}
                   >
-                    <span className="text-2xl mt-1">{itemData.icon}</span>
+                    <ItemSprite itemId={itemData.id} className="w-9 h-9 mt-1" />
                     <span className="text-[10px] font-bold text-amber-200 truncate w-full text-center">
                       {invItem.refineLevel > 0 ? `+${invItem.refineLevel}` : ''}
                     </span>
@@ -147,15 +152,16 @@ export const InventoryWindow: React.FC<InventoryWindowProps> = ({
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-lg bg-slate-900 border border-amber-700/40 flex items-center justify-center text-2xl shrink-0">
-                      {selectedItemData.icon}
+                      <ItemSprite itemId={selectedItemData.id} className="w-10 h-10" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-xs sm:text-sm text-amber-300 truncate">
+                      <h3 className="font-bold text-xs sm:text-sm truncate" style={{ color: RARITIES[selectedInventoryItem.rarity || 'COMMON'].color }}>
                         {selectedInventoryItem.refineLevel > 0 ? `+${selectedInventoryItem.refineLevel} ` : ''}
                         {selectedItemData.name}
                         {selectedItemData.slots ? ` [${selectedItemData.slots}]` : ''}
                       </h3>
                       <span className="text-[10px] text-slate-400 uppercase font-medium block">{selectedItemData.type}</span>
+                      <strong className="text-[10px]" style={{ color: RARITIES[selectedInventoryItem.rarity || 'COMMON'].color }}>{RARITIES[selectedInventoryItem.rarity || 'COMMON'].label}</strong>
                     </div>
                   </div>
 

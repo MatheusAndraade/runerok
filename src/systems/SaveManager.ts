@@ -1,4 +1,5 @@
 import { SaveData, CharacterStats } from '../types/game';
+import { SKILLS } from '../data/skills';
 
 const DB_NAME = 'RagnarokIdleDB';
 const STORE_NAME = 'saves';
@@ -6,6 +7,22 @@ const DB_VERSION = 1;
 
 export class SaveManager {
   private static dbPromise: Promise<IDBDatabase> | null = null;
+
+  public static normalizeSave(save: SaveData): SaveData {
+    save.character.headStyle ??= 0;
+    save.character.jobLevel ??= Math.max(1, Math.min(50, save.character.baseLevel));
+    save.skillLevels ??= Object.fromEntries(Object.keys(SKILLS).map(id => [id, 1]));
+    Object.keys(SKILLS).forEach(id => { save.skillLevels![id] ??= 1; });
+    save.skillPoints ??= 0;
+    [
+      { id: 'auto_brandish', skillId: 'brandish_spear', condition: 'ENEMIES_GTE_3' as const, priority: 4, enabled: false },
+      { id: 'auto_quicken', skillId: 'two_hand_quicken', condition: 'SP_GTE_30' as const, priority: 5, enabled: true }
+    ].forEach(rule => { if (!save.skillRules.some(existing => existing.skillId === rule.skillId)) save.skillRules.push(rule); });
+    save.claimedGuildMissions ??= [];
+    save.inventory.forEach(item => { item.rarity ??= 'COMMON'; });
+    Object.values(save.equipment).forEach(item => { if (item) item.rarity ??= 'COMMON'; });
+    return save;
+  }
 
   private static getDB(): Promise<IDBDatabase> {
     if (!SaveManager.dbPromise) {
@@ -48,7 +65,7 @@ export class SaveManager {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
         const request = store.getAll();
-        request.onsuccess = () => resolve(request.result || []);
+        request.onsuccess = () => resolve((request.result || []).map((save: SaveData) => SaveManager.normalizeSave(save)));
         request.onerror = () => reject(request.error);
       });
     } catch (e) {
@@ -56,7 +73,7 @@ export class SaveManager {
       const saves: SaveData[] = [];
       localKeys.forEach(k => {
         try {
-          saves.push(JSON.parse(localStorage.getItem(k)!));
+          saves.push(SaveManager.normalizeSave(JSON.parse(localStorage.getItem(k)!)));
         } catch (_) {}
       });
       return saves;
@@ -90,6 +107,8 @@ export class SaveManager {
       character: {
         name: charName || 'Arthas',
         className: 'Knight',
+        headStyle: 0,
+        jobLevel: 1,
         baseLevel: 1,
         baseExp: 0,
         currentHp: 145,
@@ -150,8 +169,21 @@ export class SaveManager {
       skillRules: [
         { id: '1', skillId: 'bowling_bash', condition: 'ENEMIES_GTE_3', priority: 1, enabled: true },
         { id: '2', skillId: 'pierce', condition: 'TARGET_LARGE', priority: 2, enabled: true },
-        { id: '3', skillId: 'bash', condition: 'HP_BELOW_50', priority: 3, enabled: true }
+        { id: '3', skillId: 'bash', condition: 'HP_BELOW_50', priority: 3, enabled: true },
+        { id: '4', skillId: 'brandish_spear', condition: 'ENEMIES_GTE_3', priority: 4, enabled: false },
+        { id: '5', skillId: 'two_hand_quicken', condition: 'SP_GTE_30', priority: 5, enabled: true }
       ],
+      skillLevels: Object.fromEntries(Object.keys(SKILLS).map(id => [id, 1])),
+      skillPoints: 0,
+
+      hotbar: [
+        { kind: 'skill', refId: 'bowling_bash' },
+        { kind: 'skill', refId: 'pierce' },
+        { kind: 'skill', refId: 'bash' },
+        { kind: 'item', refId: 'pot_red' },
+        null, null, null, null, null
+      ],
+      claimedGuildMissions: [],
 
       autoPotionSettings: {
         useHpPotion: true,

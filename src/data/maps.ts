@@ -1,6 +1,17 @@
 import { MapData } from '../types/game';
 
 export const MAPS: Record<string, MapData> = {
+  'prontera_guild': {
+    id: 'prontera_guild',
+    name: 'Guilda dos Aventureiros de Prontera',
+    recommendedLevel: 'Área Segura',
+    width: 800,
+    height: 600,
+    bgm: 'prontera',
+    theme: 'town',
+    monsterSpawns: [],
+    obstacles: []
+  },
   'prt_fild01': {
     id: 'prt_fild01',
     name: 'Campos de Prontera 01 (Planície Ocidental)',
@@ -10,10 +21,10 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'prontera',
     theme: 'grass',
     monsterSpawns: [
-      { monsterId: 'poring', count: 8 },
-      { monsterId: 'fabre', count: 6 },
-      { monsterId: 'lunatic', count: 5 },
-      { monsterId: 'pupa', count: 3 }
+      { monsterId: 'poring', count: 4 },
+      { monsterId: 'fabre', count: 3 },
+      { monsterId: 'lunatic', count: 3 },
+      { monsterId: 'pupa', count: 2 }
     ],
     obstacles: [
       { x: 100, y: 100, w: 60, h: 60, type: 'tree' },
@@ -31,10 +42,10 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'prontera',
     theme: 'grass',
     monsterSpawns: [
-      { monsterId: 'rocker', count: 7 },
-      { monsterId: 'spore', count: 6 },
-      { monsterId: 'poporing', count: 5 },
-      { monsterId: 'lunatic', count: 3 }
+      { monsterId: 'rocker', count: 4 },
+      { monsterId: 'spore', count: 3 },
+      { monsterId: 'poporing', count: 3 },
+      { monsterId: 'lunatic', count: 2 }
     ],
     obstacles: [
       { x: 150, y: 200, w: 70, h: 70, type: 'tree' },
@@ -51,10 +62,10 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'payon_cave',
     theme: 'cave',
     monsterSpawns: [
-      { monsterId: 'zombie', count: 8 },
-      { monsterId: 'skeleton', count: 7 },
-      { monsterId: 'jiboia', count: 5 },
-      { monsterId: 'spore', count: 3 }
+      { monsterId: 'zombie', count: 4 },
+      { monsterId: 'skeleton', count: 4 },
+      { monsterId: 'jiboia', count: 3 },
+      { monsterId: 'spore', count: 2 }
     ],
     obstacles: [
       { x: 200, y: 100, w: 120, h: 80, type: 'wall' },
@@ -71,9 +82,9 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'morroc',
     theme: 'desert',
     monsterSpawns: [
-      { monsterId: 'pecopeco', count: 8 },
-      { monsterId: 'metaller', count: 7 },
-      { monsterId: 'soldier_skeleton', count: 5 }
+      { monsterId: 'pecopeco', count: 4 },
+      { monsterId: 'metaller', count: 4 },
+      { monsterId: 'soldier_skeleton', count: 3 }
     ],
     obstacles: [
       { x: 250, y: 150, w: 100, h: 80, type: 'rock' },
@@ -89,9 +100,9 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'geffen',
     theme: 'dungeon',
     monsterSpawns: [
-      { monsterId: 'orc_warrior', count: 8 },
-      { monsterId: 'high_orc', count: 6 },
-      { monsterId: 'zenorc', count: 6 }
+      { monsterId: 'orc_warrior', count: 4 },
+      { monsterId: 'high_orc', count: 3 },
+      { monsterId: 'zenorc', count: 3 }
     ],
     obstacles: [
       { x: 250, y: 200, w: 100, h: 100, type: 'wall' },
@@ -107,9 +118,9 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'prontera',
     theme: 'grass',
     monsterSpawns: [
-      { monsterId: 'anolian', count: 8 },
-      { monsterId: 'minorous', count: 6 },
-      { monsterId: 'mummy', count: 5 }
+      { monsterId: 'anolian', count: 4 },
+      { monsterId: 'minorous', count: 3 },
+      { monsterId: 'mummy', count: 3 }
     ],
     obstacles: [
       { x: 200, y: 180, w: 90, h: 90, type: 'rock' },
@@ -125,9 +136,9 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'geffen',
     theme: 'gothic',
     monsterSpawns: [
-      { monsterId: 'clock', count: 8 },
-      { monsterId: 'alarm', count: 7 },
-      { monsterId: 'minorous', count: 4 }
+      { monsterId: 'clock', count: 4 },
+      { monsterId: 'alarm', count: 4 },
+      { monsterId: 'minorous', count: 2 }
     ],
     obstacles: [
       { x: 300, y: 250, w: 150, h: 80, type: 'building' }
@@ -142,9 +153,9 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'glastheim',
     theme: 'gothic',
     monsterSpawns: [
-      { monsterId: 'raydric', count: 9 },
-      { monsterId: 'injustice', count: 7 },
-      { monsterId: 'clock', count: 4 }
+      { monsterId: 'raydric', count: 4 },
+      { monsterId: 'injustice', count: 4 },
+      { monsterId: 'clock', count: 2 }
     ],
     obstacles: [
       { x: 200, y: 200, w: 120, h: 120, type: 'wall' },
@@ -160,9 +171,9 @@ export const MAPS: Record<string, MapData> = {
     bgm: 'glastheim',
     theme: 'dungeon',
     monsterSpawns: [
-      { monsterId: 'golem_lava', count: 8 },
-      { monsterId: 'raydric', count: 7 },
-      { monsterId: 'injustice', count: 4 },
+      { monsterId: 'golem_lava', count: 4 },
+      { monsterId: 'raydric', count: 3 },
+      { monsterId: 'injustice', count: 2 },
       { monsterId: 'doppelganger', count: 1 }
     ],
     obstacles: [

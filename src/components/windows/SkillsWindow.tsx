@@ -6,10 +6,11 @@ import { Zap, X, Sparkles, CheckCircle2, Circle } from 'lucide-react';
 interface SkillsWindowProps {
   saveData?: SaveData;
   onUpdateRules?: (newRules: SkillRule[]) => void;
+  onUpgradeSkill?: (skillId: string) => string;
   onClose: () => void;
 }
 
-export const SkillsWindow: React.FC<SkillsWindowProps> = ({ saveData, onUpdateRules, onClose }) => {
+export const SkillsWindow: React.FC<SkillsWindowProps> = ({ saveData, onUpdateRules, onUpgradeSkill, onClose }) => {
   const skillList = Object.values(SKILLS);
   const rules = saveData?.skillRules || [];
 
@@ -87,7 +88,11 @@ export const SkillsWindow: React.FC<SkillsWindowProps> = ({ saveData, onUpdateRu
 
           {/* Diretório de Habilidades */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pt-1">
-            {skillList.map((skill: SkillData) => (
+            {skillList.map((skill: SkillData) => {
+              const level = saveData?.skillLevels?.[skill.id] || 1;
+              const cost = skill.spCost + (skill.spCostPerLevel || 0) * (level - 1);
+              const multiplier = (skill.baseMultiplier || 1) + (skill.multiplierPerLevel || 0) * (level - 1);
+              return (
               <div
                 key={skill.id}
                 className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-2 hover:border-amber-700/50 transition-colors"
@@ -98,7 +103,7 @@ export const SkillsWindow: React.FC<SkillsWindowProps> = ({ saveData, onUpdateRu
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-amber-200 text-xs sm:text-sm truncate">{skill.name}</h3>
+                      <h3 className="font-bold text-amber-200 text-xs sm:text-sm truncate">{skill.name} • Nv.{level}/10</h3>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase ${
                         skill.type === 'ACTIVE' ? 'bg-amber-950 text-amber-300 border border-amber-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                       }`}>
@@ -113,11 +118,12 @@ export const SkillsWindow: React.FC<SkillsWindowProps> = ({ saveData, onUpdateRu
                 </p>
 
                 <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
-                  <span>Custo SP: <strong className="text-sky-300">{skill.spCost}</strong></span>
+                  <span>Custo SP: <strong className="text-sky-300">{cost}</strong>{skill.type === 'ACTIVE' && <small> • {Math.round(multiplier * 100)}% dano</small>}</span>
                   {skill.cooldown > 0 && <span>Recarga: <strong className="text-amber-300">{skill.cooldown}s</strong></span>}
                 </div>
+                <button disabled={level >= 10 || (saveData?.skillPoints || 0) <= 0} onClick={() => onUpgradeSkill?.(skill.id)} className="py-1.5 rounded bg-amber-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[11px] font-bold">Evoluir ({saveData?.skillPoints || 0} pontos)</button>
               </div>
-            ))}
+            );})}
           </div>
         </div>
       </div>

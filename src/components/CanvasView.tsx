@@ -35,13 +35,23 @@ export const CanvasView: React.FC = () => {
     });
     resizeObserver.observe(container);
 
+    const handlePointerUp = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const map = MAPS[engine.saveData?.currentMapId || 'prt_fild01'] || MAPS.prt_fild01;
+      engine.interactAt(
+        ((event.clientX - rect.left) / Math.max(1, rect.width)) * map.width,
+        ((event.clientY - rect.top) / Math.max(1, rect.height)) * map.height
+      );
+    };
+    canvas.addEventListener('pointerup', handlePointerUp);
+
     let animFrameId: number;
     let lastTime = performance.now();
     let logicAcc = 0;
-    const LOGIC_STEP = 0.05; // 20Hz logic updates (50ms)
+    const LOGIC_STEP = 1 / 60; // fixed 60 FPS simulation
 
     const renderLoop = (time: number) => {
-      const dt = (time - lastTime) / 1000;
+      const dt = Math.min(0.1, (time - lastTime) / 1000);
       lastTime = time;
 
       logicAcc += dt;
@@ -61,6 +71,7 @@ export const CanvasView: React.FC = () => {
         engine.playerDir,
         engine.playerState,
         engine.playerAnimFrame,
+        engine.playerAttackAnimationProgress,
         hpPct,
         engine.activeMonsters,
         engine.droppedItems,
@@ -70,7 +81,8 @@ export const CanvasView: React.FC = () => {
         engine.attackParticles,
         engine.mapFadeAlpha,
         engine.mapTransitionName,
-        engine.saveData?.character.name || 'Cavaleiro'
+        engine.saveData?.character.name || 'Cavaleiro',
+        engine.saveData?.character.headStyle ?? 0
       );
 
       animFrameId = requestAnimationFrame(renderLoop);
@@ -81,6 +93,7 @@ export const CanvasView: React.FC = () => {
     return () => {
       cancelAnimationFrame(animFrameId);
       resizeObserver.disconnect();
+      canvas.removeEventListener('pointerup', handlePointerUp);
     };
   }, []);
 

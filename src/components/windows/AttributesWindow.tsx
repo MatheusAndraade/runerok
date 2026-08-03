@@ -18,6 +18,8 @@ export const AttributesWindow: React.FC<AttributesWindowProps> = ({
   onAllocateStat,
   onClose
 }) => {
+  const holdTimeoutRef = React.useRef<number | null>(null);
+  const holdIntervalRef = React.useRef<number | null>(null);
   const stats = saveData.character.stats;
   const pointsAvailable = saveData.character.statPoints;
 
@@ -31,6 +33,22 @@ export const AttributesWindow: React.FC<AttributesWindowProps> = ({
       const updatedStats = { ...stats, [statName]: stats[statName] + 1 };
       onUpdateStats(updatedStats, pointsAvailable - cost);
     }
+  };
+
+  const stopHolding = React.useCallback(() => {
+    if (holdTimeoutRef.current !== null) window.clearTimeout(holdTimeoutRef.current);
+    if (holdIntervalRef.current !== null) window.clearInterval(holdIntervalRef.current);
+    holdTimeoutRef.current = null;
+    holdIntervalRef.current = null;
+  }, []);
+
+  React.useEffect(() => stopHolding, [stopHolding]);
+
+  const startHolding = (statName: StatType) => {
+    handleIncreaseStat(statName);
+    holdTimeoutRef.current = window.setTimeout(() => {
+      holdIntervalRef.current = window.setInterval(() => handleIncreaseStat(statName), 70);
+    }, 280);
   };
 
   const statList: Array<{ key: StatType; label: string; desc: string }> = [
@@ -78,7 +96,10 @@ export const AttributesWindow: React.FC<AttributesWindowProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-base font-bold text-white">{val}</span>
                       <button
-                        onClick={() => handleIncreaseStat(item.key)}
+                        onPointerDown={() => startHolding(item.key)}
+                        onPointerUp={stopHolding}
+                        onPointerLeave={stopHolding}
+                        onPointerCancel={stopHolding}
                         disabled={!canAfford}
                         className={`flex items-center justify-center gap-1 px-2 py-1 rounded text-xs font-bold transition-all ${
                           canAfford

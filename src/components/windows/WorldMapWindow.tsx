@@ -4,6 +4,7 @@ import { MAPS } from '../../data/maps';
 import { MONSTERS } from '../../data/monsters';
 import { ITEMS } from '../../data/items';
 import { Map, X, Compass, ArrowRight } from 'lucide-react';
+import { ItemSprite } from '../ItemSprite';
 
 interface WorldMapWindowProps {
   saveData?: SaveData;
@@ -80,6 +81,7 @@ export const WorldMapWindow: React.FC<WorldMapWindowProps> = ({
           {/* Detalhes do Mapa Selecionado */}
           <div className="bg-slate-950 p-3 sm:p-4 rounded-lg border border-slate-800 flex flex-col justify-between space-y-3">
             <div className="space-y-3 overflow-y-auto">
+              <img src="/game-assets/world-map.png" alt="Mapa de Midgard" className="w-full h-32 object-cover border border-slate-700 rounded" />
               <div className="border-b border-slate-800 pb-2">
                 <h3 className="text-sm sm:text-base font-bold text-amber-300">{selectedMap.name}</h3>
                 <div className="text-xs text-slate-400 font-mono">Nível Recomendado: {selectedMap.recommendedLevel}</div>
@@ -115,7 +117,7 @@ export const WorldMapWindow: React.FC<WorldMapWindowProps> = ({
                     if (!itemData) return null;
                     return (
                       <span key={itemId} className="text-[11px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-amber-100 flex items-center gap-1">
-                        <span>{itemData.icon}</span>
+                        <ItemSprite itemId={itemId} className="w-5 h-5" />
                         <span>{itemData.name}</span>
                       </span>
                     );

@@ -7,7 +7,8 @@ import {
   CombatFloatingText,
   AttackParticle,
   MonsterData,
-  DerivedStats
+  DerivedStats,
+  ItemRarity
 } from '../types/game';
 import { MAPS } from '../data/maps';
 import { MONSTERS } from '../data/monsters';
@@ -19,6 +20,9 @@ import { Pathfinder } from '../world/Pathfinder';
 import { EventBus } from './EventBus';
 import { AudioManager } from './AudioManager';
 import { SaveManager } from '../systems/SaveManager';
+import { GUILD_MISSIONS, GUILD_RECIPES, GUILD_SHOP } from '../data/guild';
+import { createRarityBonuses, rarityValueMultiplier, rollItemRarity } from '../data/rarities';
+import { GUILD_NPCS, GuildService } from '../data/guildNpcs';
 
 export class GameEngine {
   private static instance: GameEngine;
@@ -30,6 +34,7 @@ export class GameEngine {
   public playerDir: 'left' | 'right' | 'up' | 'down' = 'down';
   public playerState: PlayerState = 'SEARCHING';
   public playerAnimFrame: number = 0;
+  public playerAttackAnimationProgress: number = 0;
   public playerPath: Position[] = [];
 
   public activeMonsters: ActiveMonster[] = [];
@@ -51,6 +56,7 @@ export class GameEngine {
   private lastAttackTime: number = 0;
   private lastSkillTime: Record<string, number> = {};
   private lastPotionTime: number = 0;
+  private activeBuffs: Record<string, number> = {};
   private lastAutoSaveTime: number = Date.now();
 
   // Metrics for Idle Panel
@@ -90,7 +96,16 @@ export class GameEngine {
   }
 
   public init(saveData: SaveData) {
-    this.saveData = saveData;
+    this.saveData = SaveManager.normalizeSave(saveData);
+    this.saveData.character.headStyle ??= 0;
+    this.saveData.hotbar ??= [
+      { kind: 'skill', refId: 'bowling_bash' },
+      { kind: 'skill', refId: 'pierce' },
+      { kind: 'skill', refId: 'bash' },
+      { kind: 'item', refId: 'pot_red' },
+      null, null, null, null, null
+    ];
+    this.saveData.claimedGuildMissions ??= [];
     this.updateDerivedStats();
 
     const currentMap = MAPS[saveData.currentMapId] || MAPS['prt_fild01'];
@@ -98,6 +113,10 @@ export class GameEngine {
     this.pathfinder.setObstacles(currentMap.obstacles);
 
     this.playerPos = { x: currentMap.width / 2, y: currentMap.height / 2 };
+    // React development mode can initialize effects twice. Always rebuild the
+    // transient scene so spawn counts remain identical to the map definition.
+    this.activeMonsters = [];
+    this.droppedItems = [];
     this.spawnMapMonsters();
 
     AudioManager.getInstance().playBgm(currentMap.bgm);
@@ -147,17 +166,30 @@ export class GameEngine {
           y = currentMap.height / 2 + (Math.random() * 100 - 50);
         }
 
+        const isElite = Math.random() < 0.065;
+        const data: MonsterData = isElite ? {
+          ...monsterData,
+          name: `${monsterData.name} Elite`,
+          hp: Math.round(monsterData.hp * 2.4),
+          atk: Math.round(monsterData.atk * 1.55),
+          def: Math.round(monsterData.def * 1.3),
+          mdef: Math.round(monsterData.mdef * 1.3),
+          baseExp: Math.round(monsterData.baseExp * 2.5),
+          lootTable: monsterData.lootTable.map(drop => ({ ...drop, chance: Math.min(1, drop.chance * 1.65) }))
+        } : monsterData;
         this.activeMonsters.push({
           instanceId: `m_${Date.now()}_${Math.random()}`,
-          data: monsterData,
+          data,
           x,
           y,
-          currentHp: monsterData.hp,
+          currentHp: data.hp,
           state: 'IDLE',
           lastAttackTime: 0,
           attackAnimationProgress: 0,
           animFrame: 0,
-          direction: 'down'
+          direction: 'down',
+          nextWanderDelay: 1.4 + Math.random() * 2.2,
+          isElite
         });
       }
     });
@@ -215,6 +247,7 @@ export class GameEngine {
     }
 
     this.playerAnimFrame++;
+    this.playerAttackAnimationProgress = Math.max(0, this.playerAttackAnimationProgress - deltaTimeSec * 5.5);
 
     // Level Up Effect Animation
     if (this.levelUpEffect.active) {
@@ -228,8 +261,8 @@ export class GameEngine {
     // Floating text update
     const now = Date.now();
     this.floatingTexts = this.floatingTexts.filter(ft => {
-      ft.y -= 0.8;
-      ft.opacity -= 0.02;
+      ft.y -= 18 * deltaTimeSec;
+      ft.opacity -= 0.45 * deltaTimeSec;
       return ft.opacity > 0;
     });
 
@@ -245,6 +278,11 @@ export class GameEngine {
 
     // Auto Potion Engine
     this.checkAutoPotion();
+
+    // Ground drops stay visible briefly, then go straight to the inventory.
+    this.droppedItems
+      .filter(item => now - item.spawnTime >= 2000)
+      .forEach(item => this.lootItem(item));
 
     // Player State Machine Process
     this.processPlayerFSM(deltaTimeSec);
@@ -318,27 +356,13 @@ export class GameEngine {
       return;
     }
 
-    // 1. Check for dropped items nearby to loot first (only when SEARCHING)
-    if (this.saveData.autoLootSettings.lootAll && this.droppedItems.length > 0 && this.playerState === 'SEARCHING') {
-      const nearestItem = this.droppedItems[0];
-      const distToItem = Math.hypot(nearestItem.x - this.playerPos.x, nearestItem.y - this.playerPos.y);
-
-      if (distToItem < 35) {
-        this.lootItem(nearestItem);
-      } else if (distToItem < 220) {
-        const itemPath = this.pathfinder.findPath(this.playerPos, { x: nearestItem.x, y: nearestItem.y });
-        if (itemPath.length > 0) {
-          this.targetItemInstanceId = nearestItem.instanceId;
-          this.playerState = 'MOVING';
-          this.playerPath = itemPath;
-        } else if (distToItem < 60) {
-          // If close enough even without path, collect item
-          this.lootItem(nearestItem);
-        }
-      }
+    if (this.saveData.currentMapId === 'prontera_guild') {
+      this.playerState = 'IDLE';
+      this.playerPath = [];
+      return;
     }
 
-    // 2. FSM States
+    // FSM States
     switch (this.playerState) {
       case 'SEARCHING':
         this.findNearestTargetMonster();
@@ -360,7 +384,7 @@ export class GameEngine {
     let minDist = 99999;
 
     this.activeMonsters.forEach(m => {
-      if (m.state === 'DEAD') return;
+      if (m.state === 'DEAD' || m.state === 'RESPAWNING') return;
       const dist = Math.hypot(m.x - this.playerPos.x, m.y - this.playerPos.y);
       if (dist < minDist) {
         minDist = dist;
@@ -400,6 +424,15 @@ export class GameEngine {
   }
 
   private moveAlongPlayerPath(deltaTimeSec: number) {
+    if (this.targetMonsterInstanceId) {
+      const target = this.activeMonsters.find(m => m.instanceId === this.targetMonsterInstanceId && m.state !== 'DEAD' && m.state !== 'RESPAWNING');
+      if (target && Math.hypot(target.x - this.playerPos.x, target.y - this.playerPos.y) <= this.derivedStats.attackRange) {
+        this.playerPath = [];
+        this.playerState = 'ATTACKING';
+        return;
+      }
+    }
+
     if (this.playerPath.length === 0) {
       this.playerState = 'SEARCHING';
       this.targetMonsterInstanceId = null;
@@ -424,7 +457,7 @@ export class GameEngine {
         // Destination reached
         if (this.targetMonsterInstanceId) {
           const target = this.activeMonsters.find(m => m.instanceId === this.targetMonsterInstanceId);
-          if (target && target.state !== 'DEAD') {
+          if (target && target.state !== 'DEAD' && target.state !== 'RESPAWNING') {
             const distToTarget = Math.hypot(target.x - this.playerPos.x, target.y - this.playerPos.y);
             if (distToTarget <= this.derivedStats.attackRange) {
               this.playerState = 'ATTACKING';
@@ -448,7 +481,7 @@ export class GameEngine {
 
   private performKnightAttack() {
     const target = this.activeMonsters.find(m => m.instanceId === this.targetMonsterInstanceId);
-    if (!target || target.state === 'DEAD') {
+    if (!target || target.state === 'DEAD' || target.state === 'RESPAWNING') {
       this.playerState = 'SEARCHING';
       this.targetMonsterInstanceId = null;
       return;
@@ -461,10 +494,14 @@ export class GameEngine {
       : (faceDy > 0 ? 'down' : 'up');
 
     const now = Date.now();
-    const attackIntervalMs = 1000 / this.derivedStats.aspd;
+    const quickenActive = (this.activeBuffs.two_hand_quicken || 0) > now;
+    const quickenLevel = this.getSkillLevel('two_hand_quicken');
+    const effectiveAspd = this.derivedStats.aspd * (quickenActive ? 1 + (0.15 + quickenLevel * 0.02) : 1);
+    const attackIntervalMs = 1000 / effectiveAspd;
 
     if (now - this.lastAttackTime >= attackIntervalMs) {
       this.lastAttackTime = now;
+      this.playerAttackAnimationProgress = 1;
 
       // Check skill priority rules
       let skillMultiplier = 1.0;
@@ -475,7 +512,9 @@ export class GameEngine {
         const skill = SKILLS[rule.skillId];
         if (!skill) continue;
 
-        if (this.saveData.character.currentSp < skill.spCost) continue;
+        const skillLevel = this.getSkillLevel(skill.id);
+        const skillCost = skill.spCost + (skill.spCostPerLevel || 0) * (skillLevel - 1);
+        if (this.saveData.character.currentSp < skillCost) continue;
 
         const lastUsed = this.lastSkillTime[skill.id] || 0;
         if (now - lastUsed < skill.cooldown * 1000) continue;
@@ -483,23 +522,36 @@ export class GameEngine {
         // Condition Check
         let conditionMet = false;
         if (rule.condition === 'ALWAYS') conditionMet = true;
-        if (rule.condition === 'TARGET_LARGE' && target.data.size === 'Large') conditionMet = true;
+        if (rule.condition === 'TARGET_LARGE' && (target.data.size === 'Large' || target.data.size === 'Grande')) conditionMet = true;
         if (rule.condition === 'HP_BELOW_50' && (this.saveData.character.currentHp / this.derivedStats.maxHp) < 0.5) conditionMet = true;
         if (rule.condition === 'ENEMIES_GTE_2') {
-          const nearby = this.activeMonsters.filter(m => m.state !== 'DEAD' && Math.hypot(m.x - this.playerPos.x, m.y - this.playerPos.y) < 120);
+          const nearby = this.activeMonsters.filter(m => m.state !== 'DEAD' && m.state !== 'RESPAWNING' && Math.hypot(m.x - this.playerPos.x, m.y - this.playerPos.y) < 120);
           if (nearby.length >= 2) conditionMet = true;
         }
+        if (rule.condition === 'ENEMIES_GTE_3') {
+          const nearby = this.activeMonsters.filter(m => m.state !== 'DEAD' && m.state !== 'RESPAWNING' && Math.hypot(m.x - this.playerPos.x, m.y - this.playerPos.y) < 135);
+          conditionMet = nearby.length >= 3;
+        }
+        if (rule.condition === 'SP_GTE_30') conditionMet = this.saveData.character.currentSp >= Math.max(30, skillCost);
 
         if (conditionMet) {
           selectedSkillId = skill.id;
-          this.saveData.character.currentSp -= skill.spCost;
+          this.saveData.character.currentSp -= skillCost;
           this.lastSkillTime[skill.id] = now;
 
-          if (skill.id === 'bowling_bash') skillMultiplier = 4.0;
-          if (skill.id === 'pierce') skillMultiplier = target.data.size === 'Large' ? 3.0 : 2.0;
-          if (skill.id === 'bash') skillMultiplier = 2.5;
+          skillMultiplier = (skill.baseMultiplier || 1) + (skill.multiplierPerLevel || 0) * (skillLevel - 1);
+          if (skill.id === 'pierce' && (target.data.size === 'Large' || target.data.size === 'Grande')) skillMultiplier *= 1.45;
+          if (skill.type === 'BUFF') {
+            this.activeBuffs[skill.id] = now + (skill.buffDuration || 45) * 1000;
+            skillMultiplier = 1;
+          }
           break;
         }
+      }
+
+      if (selectedSkillId) {
+        const skillName = SKILLS[selectedSkillId]?.name || selectedSkillId;
+        this.addFloatingText(skillName, this.playerPos.x, this.playerPos.y - 48, '#fff1a8', 1.15);
       }
 
       // Calculate Physical Damage
@@ -544,6 +596,26 @@ export class GameEngine {
           AudioManager.getInstance().playAttack();
         }
 
+        // Area skills damage every valid creature around the primary target.
+        const selectedSkill = selectedSkillId ? SKILLS[selectedSkillId] : null;
+        if (selectedSkill?.areaRadius) {
+          this.activeMonsters
+            .filter(monster => monster.instanceId !== target.instanceId && monster.state !== 'DEAD' && monster.state !== 'RESPAWNING')
+            .filter(monster => Math.hypot(monster.x - target.x, monster.y - target.y) <= selectedSkill.areaRadius!)
+            .slice(0, Math.max(0, (selectedSkill.maxTargets || 1) - 1))
+            .forEach(monster => {
+              const areaDamage = Math.max(1, Math.round(damage * (0.78 + Math.random() * 0.16)));
+              monster.currentHp -= areaDamage;
+              monster.hitFlash = 0.25;
+              this.addFloatingText(`${areaDamage}`, monster.x, monster.y - 10, '#f59e0b', 1.15);
+              this.spawnAttackSparks(monster.x, monster.y, 'skill');
+              this.metrics.damageDealtWindow += areaDamage;
+              this.saveData.statistics.totalDamageDealt += areaDamage;
+              if (monster.currentHp <= 0) this.handleMonsterDeath(monster);
+              else monster.state = 'CHASE';
+            });
+        }
+
         // Check if monster died
         if (target.currentHp <= 0) {
           this.handleMonsterDeath(target);
@@ -555,6 +627,10 @@ export class GameEngine {
   private handleMonsterDeath(monster: ActiveMonster) {
     monster.state = 'DEAD';
     monster.currentHp = 0;
+    monster.deathStartedAt = Date.now();
+    monster.respawnStartedAt = undefined;
+    monster.targetX = undefined;
+    monster.targetY = undefined;
     AudioManager.getInstance().playMonsterDeath();
 
     this.metrics.killsWindow++;
@@ -568,6 +644,12 @@ export class GameEngine {
     // Award EXP
     this.saveData.character.baseExp += monster.data.baseExp;
     this.metrics.expEarnedWindow += monster.data.baseExp;
+
+    const zenyReward = Math.max(1, Math.round((monster.data.level * 3 + monster.data.baseExp * 0.35) * (0.85 + Math.random() * 0.3) * (monster.isElite ? 2.5 : 1)));
+    this.saveData.character.zeny += zenyReward;
+    this.metrics.zenyEarnedWindow += zenyReward;
+    this.saveData.statistics.totalZenyEarned += zenyReward;
+    this.addFloatingText(`+${zenyReward} Zeny`, monster.x, monster.y - 32, '#eab308');
 
     // Check Level Up
     this.checkLevelUp();
@@ -593,7 +675,10 @@ export class GameEngine {
             x: monster.x + (Math.random() * 20 - 10),
             y: monster.y + (Math.random() * 20 - 10),
             amount: 1,
-            spawnTime: Date.now()
+            spawnTime: Date.now(),
+            rarity: ['weapon', 'armor', 'headgear', 'garment', 'shoes', 'accessory'].includes(itemData.type)
+              ? rollItemRarity(Boolean(monster.isElite))
+              : 'COMMON'
           });
         }
       }
@@ -612,6 +697,8 @@ export class GameEngine {
       // Award stat points (3 + Math.floor(baseLevel/5))
       const points = 3 + Math.floor(this.saveData.character.baseLevel / 5);
       this.saveData.character.statPoints += points;
+      this.saveData.skillPoints = (this.saveData.skillPoints || 0) + 1;
+      this.saveData.character.jobLevel = Math.min(50, (this.saveData.character.jobLevel || 1) + 1);
 
       this.updateDerivedStats();
       this.saveData.character.currentHp = this.derivedStats.maxHp;
@@ -636,7 +723,8 @@ export class GameEngine {
         this.saveData.statistics.totalZenyEarned += itemData.price;
         this.addFloatingText(`+${itemData.price} Zeny`, item.x, item.y, '#eab308');
       } else {
-        const existing = this.saveData.inventory.find(i => i.itemId === item.itemId);
+        const isEquipment = ['weapon', 'armor', 'headgear', 'garment', 'shoes', 'accessory'].includes(itemData.type);
+        const existing = !isEquipment ? this.saveData.inventory.find(i => i.itemId === item.itemId) : undefined;
         if (existing) {
           existing.amount += item.amount;
         } else {
@@ -645,13 +733,15 @@ export class GameEngine {
             itemId: item.itemId,
             refineLevel: 0,
             cards: [],
-            amount: item.amount
+            amount: item.amount,
+            rarity: item.rarity || 'COMMON',
+            bonusStats: createRarityBonuses(itemData, item.rarity || 'COMMON')
           });
         }
         if (!this.saveData.itemsDiscovered.includes(itemData.id)) {
           this.saveData.itemsDiscovered.push(itemData.id);
         }
-        this.addFloatingText(`+1 ${itemData.name}`, item.x, item.y - 10, '#38bdf8');
+        this.addFloatingText(`+1 ${itemData.name}${item.rarity && item.rarity !== 'COMMON' ? ` [${item.rarity}]` : ''}`, item.x, item.y - 10, '#38bdf8');
       }
     }
 
@@ -663,27 +753,49 @@ export class GameEngine {
     const currentMap = MAPS[this.saveData.currentMapId] || MAPS['prt_fild01'];
 
     this.activeMonsters.forEach(m => {
-      if (m.state === 'DEAD') return;
+      if (m.state === 'DEAD' || m.state === 'RESPAWNING') return;
+
+      m.animFrame++;
+      m.attackAnimationProgress = Math.max(0, m.attackAnimationProgress - deltaTimeSec * 4.5);
 
       if (m.hitFlash && m.hitFlash > 0) {
         m.hitFlash -= deltaTimeSec;
         if (m.hitFlash < 0) m.hitFlash = 0;
       }
 
+      const edgeMargin = 42;
+      if (m.state !== 'ATTACKING' && m.state !== 'CHASE') {
+        const hitLeft = m.x <= edgeMargin;
+        const hitRight = m.x >= currentMap.width - edgeMargin;
+        const hitTop = m.y <= edgeMargin;
+        const hitBottom = m.y >= currentMap.height - edgeMargin;
+        if (hitLeft || hitRight || hitTop || hitBottom) {
+          m.targetX = hitLeft ? edgeMargin + 90 : hitRight ? currentMap.width - edgeMargin - 90 : m.x;
+          m.targetY = hitTop ? edgeMargin + 90 : hitBottom ? currentMap.height - edgeMargin - 90 : m.y;
+          m.state = 'MOVING';
+          const turnDx = m.targetX - m.x;
+          const turnDy = m.targetY - m.y;
+          m.direction = Math.abs(turnDx) > Math.abs(turnDy)
+            ? (turnDx > 0 ? 'right' : 'left')
+            : (turnDy > 0 ? 'down' : 'up');
+        }
+      }
+
       const distToPlayer = Math.hypot(m.x - this.playerPos.x, m.y - this.playerPos.y);
+      const combatDistance = Math.max(50, m.data.attackRange);
 
       if (m.data.behavior === 'AGGRESSIVE' && distToPlayer < 180 && m.state !== 'ATTACKING') {
         m.state = 'CHASE';
       }
 
       if (m.state === 'CHASE') {
-        if (distToPlayer <= m.data.attackRange) {
+        if (distToPlayer <= combatDistance) {
           m.state = 'ATTACKING';
         } else {
           // Move towards player
           const dx = this.playerPos.x - m.x;
           const dy = this.playerPos.y - m.y;
-          const step = m.data.moveSpeed * deltaTimeSec;
+          const step = Math.min(m.data.moveSpeed * deltaTimeSec, Math.max(0, distToPlayer - combatDistance));
           m.x += (dx / distToPlayer) * step;
           m.y += (dy / distToPlayer) * step;
           m.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
@@ -695,13 +807,14 @@ export class GameEngine {
           ? (faceDx > 0 ? 'right' : 'left')
           : (faceDy > 0 ? 'down' : 'up');
 
-        if (distToPlayer > m.data.attackRange + 20) {
+        if (distToPlayer > combatDistance + 18) {
           m.state = 'CHASE';
         } else if (now - m.lastAttackTime >= 1000 / m.data.aspd) {
           m.lastAttackTime = now;
+          m.attackAnimationProgress = 1;
           // Monster attacks Knight!
           const { damage, isMiss } = CombatCalculator.calculatePhysicalDamage(
-            m.data.atk,
+            Math.max(1, Math.floor(m.data.atk * 0.86)),
             m.data.hit,
             0,
             this.derivedStats.def,
@@ -725,8 +838,9 @@ export class GameEngine {
         // --- PASSIVE MONSTER WANDERING MOVEMENT ---
         if (m.state === 'IDLE') {
           m.wanderTimer = (m.wanderTimer || 0) + deltaTimeSec;
-          if (m.wanderTimer > 1.5 + Math.random() * 2.5) {
+          if (m.wanderTimer > (m.nextWanderDelay || 2)) {
             m.wanderTimer = 0;
+            m.nextWanderDelay = 1.4 + Math.random() * 2.4;
             const angle = Math.random() * Math.PI * 2;
             const dist = 30 + Math.random() * 70;
             const tx = Math.max(40, Math.min(currentMap.width - 40, m.x + Math.cos(angle) * dist));
@@ -748,7 +862,7 @@ export class GameEngine {
               m.state = 'IDLE';
               m.wanderTimer = 0;
             } else {
-              const step = m.data.moveSpeed * 0.4 * deltaTimeSec;
+              const step = m.data.moveSpeed * 0.56 * deltaTimeSec;
               m.x += (dx / dist) * step;
               m.y += (dy / dist) * step;
               m.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
@@ -759,6 +873,43 @@ export class GameEngine {
         }
       }
     });
+
+    this.applyActorSeparation(currentMap.width, currentMap.height);
+  }
+
+  private applyActorSeparation(mapWidth: number, mapHeight: number) {
+    const living = this.activeMonsters.filter(monster => monster.state !== 'DEAD' && monster.state !== 'RESPAWNING');
+    const minimumMonsterGap = 38;
+
+    for (let i = 0; i < living.length; i++) {
+      const monster = living[i];
+      for (let j = i + 1; j < living.length; j++) {
+        const other = living[j];
+        const dx = other.x - monster.x;
+        const dy = other.y - monster.y;
+        const distance = Math.max(0.01, Math.hypot(dx, dy));
+        if (distance >= minimumMonsterGap) continue;
+
+        const push = (minimumMonsterGap - distance) / 2;
+        const nx = dx / distance;
+        const ny = dy / distance;
+        monster.x -= nx * push;
+        monster.y -= ny * push;
+        other.x += nx * push;
+        other.y += ny * push;
+      }
+
+      const playerDx = monster.x - this.playerPos.x;
+      const playerDy = monster.y - this.playerPos.y;
+      const playerDistance = Math.max(0.01, Math.hypot(playerDx, playerDy));
+      if (playerDistance < 48) {
+        monster.x = this.playerPos.x + (playerDx / playerDistance) * 48;
+        monster.y = this.playerPos.y + (playerDy / playerDistance) * 48;
+      }
+
+      monster.x = Math.max(38, Math.min(mapWidth - 38, monster.x));
+      monster.y = Math.max(44, Math.min(mapHeight - 38, monster.y));
+    }
   }
 
   public handlePlayerDeath() {
@@ -771,30 +922,46 @@ export class GameEngine {
   public respawnPlayer() {
     this.saveData.character.currentHp = this.derivedStats.maxHp;
     this.saveData.character.currentSp = this.derivedStats.maxSp;
-    const map = MAPS[this.saveData.currentMapId] || MAPS['prt_fild01'];
-    this.playerPos = { x: map.width / 2, y: map.height / 2 };
-    this.playerState = 'SEARCHING';
-    this.playerPath = [];
-    this.targetMonsterInstanceId = null;
-    this.targetItemInstanceId = null;
-    this.checkMonsterRespawns();
+    this.changeMap('prontera_guild');
+    this.playerState = 'IDLE';
   }
 
   private checkMonsterRespawns() {
-    const currentMap = MAPS[this.saveData.currentMapId] || MAPS['prt_fild01'];
-    const deadMonsters = this.activeMonsters.filter(m => m.state === 'DEAD');
+    const now = Date.now();
 
-    deadMonsters.forEach(m => {
-      let x = 50 + Math.random() * (currentMap.width - 100);
-      let y = 50 + Math.random() * (currentMap.height - 100);
-      if (this.pathfinder.isObstacle(x, y)) {
-        x = currentMap.width / 2;
-        y = currentMap.height / 2;
+    this.activeMonsters.forEach(m => {
+      if (m.state === 'DEAD') {
+        const deathStartedAt = m.deathStartedAt ?? now;
+        m.deathStartedAt = deathStartedAt;
+        if (now - deathStartedAt < 5000) return;
+
+        const currentMap = MAPS[this.saveData.currentMapId] || MAPS['prt_fild01'];
+        const oldX = m.x;
+        const oldY = m.y;
+        for (let attempt = 0; attempt < 18; attempt++) {
+          const candidateX = 55 + Math.random() * (currentMap.width - 110);
+          const candidateY = 55 + Math.random() * (currentMap.height - 110);
+          if (this.pathfinder.isObstacle(candidateX, candidateY)) continue;
+          if (Math.hypot(candidateX - oldX, candidateY - oldY) < 170) continue;
+          if (Math.hypot(candidateX - this.playerPos.x, candidateY - this.playerPos.y) < 120) continue;
+          m.x = candidateX;
+          m.y = candidateY;
+          break;
+        }
+        m.currentHp = m.data.hp;
+        m.state = 'RESPAWNING';
+        m.respawnStartedAt = now;
+        m.animFrame = 0;
+        return;
       }
-      m.x = x;
-      m.y = y;
-      m.currentHp = m.data.hp;
-      m.state = 'IDLE';
+
+      if (m.state === 'RESPAWNING' && now - (m.respawnStartedAt ?? now) >= 700) {
+        m.state = 'IDLE';
+        m.deathStartedAt = undefined;
+        m.respawnStartedAt = undefined;
+        m.wanderTimer = 0;
+        m.nextWanderDelay = 1 + Math.random() * 2;
+      }
     });
   }
 
@@ -870,7 +1037,10 @@ export class GameEngine {
     const itemData = ITEMS[item.itemId];
     if (!itemData) return;
 
-    this.saveData.character.zeny += itemData.price * item.amount;
+    const income = Math.round(itemData.price * item.amount * rarityValueMultiplier(item.rarity));
+    this.saveData.character.zeny += income;
+    this.metrics.zenyEarnedWindow += income;
+    this.saveData.statistics.totalZenyEarned += income;
     this.saveData.inventory = this.saveData.inventory.filter(i => i.instanceId !== item.instanceId);
   }
 
@@ -881,6 +1051,29 @@ export class GameEngine {
     this.pendingMapId = mapId;
     this.mapTransitionName = targetMap.name;
     this.mapTransitionState = 'FADING_OUT';
+  }
+
+  public interactAt(x: number, y: number): boolean {
+    if (this.saveData.currentMapId !== 'prontera_guild') return false;
+    const npc = GUILD_NPCS.find(entry => Math.hypot(entry.x - x, entry.y - y) <= 55);
+    if (!npc) return false;
+    EventBus.getInstance().emit('GUILD_NPC_INTERACT', npc.service as GuildService);
+    return true;
+  }
+
+  private getSkillLevel(skillId: string): number {
+    return Math.max(1, Math.min(10, this.saveData.skillLevels?.[skillId] || 1));
+  }
+
+  public upgradeSkill(skillId: string): { success: boolean; message: string } {
+    if (!SKILLS[skillId]) return { success: false, message: 'Habilidade desconhecida.' };
+    this.saveData.skillLevels ??= {};
+    const level = this.getSkillLevel(skillId);
+    if (level >= 10) return { success: false, message: 'Habilidade no nível máximo.' };
+    if ((this.saveData.skillPoints || 0) <= 0) return { success: false, message: 'Sem pontos de habilidade.' };
+    this.saveData.skillLevels[skillId] = level + 1;
+    this.saveData.skillPoints!--;
+    return { success: true, message: `${SKILLS[skillId].name} evoluiu para Nv.${level + 1}.` };
   }
 
   private executeMapTravel(mapId: string) {
@@ -935,14 +1128,18 @@ export class GameEngine {
       this.saveData.character.baseExp -= reqExp;
       this.saveData.character.baseLevel++;
       this.saveData.character.statPoints += 5;
+      this.saveData.skillPoints = (this.saveData.skillPoints || 0) + 1;
+      this.saveData.character.jobLevel = Math.min(50, (this.saveData.character.jobLevel || 1) + 1);
       this.levelUpEffect = { active: true, progress: 1.0 };
       this.addFloatingText('LEVEL UP!', this.playerPos.x, this.playerPos.y - 30, '#f59e0b', 1.5);
     }
     this.updateDerivedStats();
   }
 
-  public grantItem(itemId: string, amount: number) {
-    const existing = this.saveData.inventory.find(i => i.itemId === itemId);
+  public grantItem(itemId: string, amount: number, rarity: ItemRarity = 'COMMON') {
+    const itemData = ITEMS[itemId];
+    const isEquipment = itemData && ['weapon', 'armor', 'headgear', 'garment', 'shoes', 'accessory'].includes(itemData.type);
+    const existing = !isEquipment ? this.saveData.inventory.find(i => i.itemId === itemId) : undefined;
     if (existing) {
       existing.amount += amount;
     } else {
@@ -951,8 +1148,56 @@ export class GameEngine {
         itemId,
         refineLevel: 0,
         cards: [],
-        amount
+        amount,
+        rarity,
+        bonusStats: itemData ? createRarityBonuses(itemData, rarity) : undefined
       });
     }
+  }
+
+  public buyGuildItem(itemId: string): { success: boolean; message: string } {
+    const offer = GUILD_SHOP.find(entry => entry.itemId === itemId);
+    const item = ITEMS[itemId];
+    if (!offer || !item) return { success: false, message: 'Item indisponível.' };
+    if (this.saveData.character.zeny < offer.price) return { success: false, message: 'Zeny insuficiente.' };
+    this.saveData.character.zeny -= offer.price;
+    this.grantItem(itemId, 1);
+    return { success: true, message: `${item.name} comprado.` };
+  }
+
+  public craftGuildRecipe(recipeId: string): { success: boolean; message: string } {
+    const recipe = GUILD_RECIPES.find(entry => entry.id === recipeId);
+    if (!recipe) return { success: false, message: 'Receita desconhecida.' };
+    if (this.saveData.character.zeny < recipe.zenyCost) return { success: false, message: 'Zeny insuficiente.' };
+
+    const missing = recipe.materials.find(material => {
+      const owned = this.saveData.inventory.find(item => item.itemId === material.itemId)?.amount || 0;
+      return owned < material.amount;
+    });
+    if (missing) return { success: false, message: `Materiais insuficientes: ${ITEMS[missing.itemId]?.name || missing.itemId}.` };
+
+    recipe.materials.forEach(material => {
+      const owned = this.saveData.inventory.find(item => item.itemId === material.itemId);
+      if (!owned) return;
+      owned.amount -= material.amount;
+      if (owned.amount <= 0) this.saveData.inventory = this.saveData.inventory.filter(item => item.instanceId !== owned.instanceId);
+    });
+    this.saveData.character.zeny -= recipe.zenyCost;
+    const rarity = rollItemRarity(false);
+    this.grantItem(recipe.resultItemId, 1, rarity);
+    return { success: true, message: `${ITEMS[recipe.resultItemId]?.name || 'Equipamento'} criado com raridade ${rarity}.` };
+  }
+
+  public claimGuildMission(missionId: string): { success: boolean; message: string } {
+    const mission = GUILD_MISSIONS.find(entry => entry.id === missionId);
+    if (!mission) return { success: false, message: 'Missão desconhecida.' };
+    this.saveData.claimedGuildMissions ??= [];
+    if (this.saveData.claimedGuildMissions.includes(missionId)) return { success: false, message: 'Recompensa já recebida.' };
+    if ((this.saveData.monsterKills[mission.monsterId] || 0) < mission.requiredKills) return { success: false, message: 'Objetivo ainda não concluído.' };
+
+    this.saveData.character.zeny += mission.zenyReward;
+    if (mission.itemReward) this.grantItem(mission.itemReward.itemId, mission.itemReward.amount);
+    this.saveData.claimedGuildMissions.push(missionId);
+    return { success: true, message: 'Missão concluída e recompensa recebida.' };
   }
 }

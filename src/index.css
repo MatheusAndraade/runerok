@@ -606,6 +606,27 @@ button.ro-dock-title {
   box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #b9c2d1 !important;
 }
 
+/* Final launcher composition: the artwork already contains the logo. */
+.ro-start-menu .relative.z-10 { max-width: 510px !important; margin-top: 48vh; padding-bottom: 0 !important; }
+.ro-start-menu .relative.z-10 > .text-center { display: none !important; }
+.ro-start-menu [class*="bg-slate-900/90"] { padding: 16px !important; border: 2px solid #80602e !important; background: linear-gradient(180deg,rgba(250,247,239,.96),rgba(222,228,239,.96)) !important; box-shadow: inset 0 0 0 1px #fff,0 10px 30px rgba(24,36,57,.38) !important; }
+.ro-start-menu [class*="bg-slate-900/90"] button { color:#213d70 !important; min-height:54px; background:linear-gradient(#fffdf7,#e4e9f2) !important; border:1px solid #8798b8 !important; box-shadow:inset 1px 1px #fff,inset -1px -1px #b4bfce !important; }
+.ro-start-menu [class*="bg-slate-900/90"] button:hover { color:#6a4212 !important; background:linear-gradient(#fff1c8,#e7bf72) !important; border-color:#a4742f !important; transform:translateY(-1px); }
+
+/* Equipment paper doll follows the classic RO left/body/right layout. */
+.ro-equipment-overview > .grid,
+.ro-equipment-overview > .ro-character-paperdoll:not(.ro-paperdoll-centered) { display:none !important; }
+.ro-equipment-overview { display:block !important; padding:6px !important; }
+.ro-equipment-paperdoll-layout { display:grid; grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr); gap:4px; align-items:stretch; }
+.ro-equip-side { display:grid; grid-template-rows:repeat(4,1fr); gap:3px; min-width:0; }
+.ro-equip-side-0 { grid-column:1; }
+.ro-equip-side-1 { grid-column:3; }
+.ro-paperdoll-centered { grid-column:2; grid-row:1; min-width:0; }
+.ro-equip-cell { min-height:34px !important; display:grid !important; grid-template-columns:28px minmax(0,1fr); align-items:center; padding:2px !important; }
+.ro-equip-cell img { width:27px !important; height:27px !important; }
+.ro-equip-cell small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ro-game-shell .ro-preview-head { top:10px !important; width:36px !important; height:41px !important; }
+
 .ro-start-menu [class*="bg-slate-900/90"] button:hover {
   color: #153d80 !important;
   background: linear-gradient(#ffffff, #ceddf6) !important;
@@ -676,3 +697,474 @@ button.ro-dock-title {
     height: 42px;
   }
 }
+
+/* Final HUD: compact white/blue Ragnarok-style windows from the supplied reference. */
+.ro-game-shell,
+.ro-game-stage {
+  color: #15223c;
+  background: #dfe6f1;
+}
+
+.ro-side-column,
+.ro-right-column {
+  padding: 3px;
+  gap: 4px;
+  color: #17233d;
+  background: linear-gradient(90deg, #f8faff, #dce4f0);
+  border-color: #7184a8;
+}
+
+.ro-right-column { background: linear-gradient(270deg, #f8faff, #dce4f0); }
+
+.ro-dock-window {
+  color: #17233d;
+  background: rgba(250, 251, 253, 0.99);
+  border: 1px solid #7184a8;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px #c6cfdd, 2px 2px 4px rgba(14, 27, 49, 0.24);
+}
+
+.ro-dock-title,
+button.ro-dock-title {
+  min-height: 23px;
+  padding: 2px 6px;
+  color: #1c315b;
+  background: linear-gradient(#fafdff, #d5deec);
+  border-bottom: 1px solid #8092b2;
+  box-shadow: inset 0 1px 0 #fff;
+  text-shadow: none;
+}
+
+.ro-player-panel { flex-basis: 225px; }
+.ro-menu-panel { flex-basis: 174px; }
+.ro-equipment-panel { flex-basis: 220px; }
+.ro-attributes-panel { flex-basis: 195px; }
+
+.ro-player-panel strong,
+.ro-player-panel [class*="text-slate"],
+.ro-player-panel .text-slate-700 { color: #17233d !important; }
+
+.ro-level-badge,
+.ro-info-strip,
+.ro-derived-stats {
+  color: #27344e;
+  background: #e7e9f0;
+  border-color: #bac3d1;
+}
+
+.ro-exp-gauge {
+  height: 8px;
+  overflow: hidden;
+  background: #dfe5ef;
+  border: 1px solid #8494af;
+  border-radius: 4px;
+  box-shadow: inset 1px 1px 2px rgba(34,49,76,.25);
+}
+.ro-exp-gauge > div { height: 100%; background: linear-gradient(#fff1a8, #e2a83b); transition: width .18s linear; }
+
+.ro-skill-cell,
+.ro-menu-button,
+.ro-active-skill {
+  color: #273b62;
+  background: radial-gradient(ellipse at center, #f9fbff, #dce4f0);
+  border: 1px solid #8c9bb5;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #bdc6d4;
+  text-shadow: none;
+}
+.ro-skill-cell:hover,
+.ro-skill-cell.is-enabled,
+.ro-menu-button:hover,
+.ro-menu-button.is-active,
+.ro-active-skill.is-enabled {
+  color: #173d7e;
+  background: #d8e4f8;
+  border-color: #5574aa;
+}
+.ro-skill-cell small { color: #68758c; }
+.ro-skill-icon { color: #263d68; background: linear-gradient(#fff, #e1e6ef); border-color: #8998b1; box-shadow: inset 1px 1px 0 #fff; }
+.ro-panel-footer { color: #45536c; background: linear-gradient(#f7f9fc, #dce3ed); border-color: #a6b1c3; }
+
+.ro-equipment-overview { grid-template-columns: 1fr 88px; padding: 6px; }
+.ro-character-paperdoll { color: #4b5870; background: #f7f8fb; border-color: #a8b3c5; }
+.ro-player-preview {
+  background-image: url('/game-assets/sprites/idle/player.png');
+  background-size: contain;
+  background-position: center;
+}
+.ro-equip-cell {
+  min-height: 38px;
+  color: #48566f;
+  background: radial-gradient(ellipse at center, #e4e9f2, #f9fafc 58%);
+  border-color: #b0bacb;
+  box-shadow: inset 1px 1px 0 #fff;
+  text-shadow: none;
+}
+.ro-equip-cell small { color: #56637a; }
+.ro-empty-equip-dot { color: #b0bac9; }
+.ro-stat-row { border-color: #d5dbe5; }
+.ro-stat-row strong { color: #264682; }
+.ro-stat-row button { color: #31558e; background: #eef3fb; border-color: #92a2bc; }
+.ro-stat-row button:disabled { color: #a7afbc; background: #eceff3; }
+.ro-derived-stats { color: #31415e; background: #e9edf4; }
+
+.ro-mini-inventory button,
+.ro-empty-slot {
+  background: radial-gradient(ellipse at center, #dfe5ef 0 34%, #f9fafc 37%);
+  border-color: #c0c8d5;
+  box-shadow: none;
+}
+.ro-mini-inventory small { color: #1c2d4e; background: rgba(255,255,255,.82); }
+.ro-item-sprite { object-fit: contain; background: none !important; }
+
+.ro-active-hotbar {
+  color: #334b76;
+  background: linear-gradient(#f9fafc, #dce3ed);
+  border-color: #7184a8;
+  box-shadow: inset 0 1px 0 #fff;
+}
+.ro-hotbar-handle { color: #334b76; cursor: pointer; }
+.ro-active-skill { color: #35425d; }
+.ro-active-skill small { color: #243b66; }
+.ro-active-skill em {
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  padding: 0 2px;
+  color: #17233d;
+  font-size: 8px;
+  font-style: normal;
+  background: rgba(255,255,255,.86);
+}
+.ro-hotbar-empty { background: #eef2f7; }
+
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"],
+.ro-classic-modal {
+  color: #1d2a44 !important;
+  background: linear-gradient(180deg, #fff, #edf1f7) !important;
+  border: 2px solid #7588ad !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 0 0 1px #c4cddd, 5px 7px 18px rgba(6,14,25,.42) !important;
+}
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"] > div:first-child,
+.ro-modal-title {
+  color: #17233d !important;
+  background: linear-gradient(#f9fbff, #d4ddea) !important;
+  border-color: #8999b7 !important;
+}
+.ro-modal-title { display: flex; align-items: center; justify-content: space-between; min-height: 30px; padding: 5px 8px; border-bottom: 1px solid; }
+.ro-game-shell .fixed.inset-0 [class*="bg-slate-950"],
+.ro-game-shell .fixed.inset-0 [class*="bg-slate-900"] { background: #f6f8fb !important; border-color: #b1bccf !important; }
+.ro-game-shell .fixed.inset-0 [class*="text-slate-"],
+.ro-game-shell .fixed.inset-0 [class*="text-amber-"] { color: #33415c !important; }
+.ro-game-shell .ro-player-panel strong.text-slate-900 { color: #111827 !important; }
+
+.ro-config-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  font-size: 22px;
+  background: #f8fafc;
+  border: 1px solid #9daabd;
+}
+.ro-config-slot.is-selected { outline: 2px solid #3f67a6; background: #dce9fc; }
+.ro-config-slot small { position: absolute; right: 2px; bottom: 0; font-size: 9px; }
+.ro-config-list { padding: 7px; background: #eef2f8; border: 1px solid #aab6c9; }
+.ro-config-list h3,.ro-guild-list h3 { margin-bottom: 6px; color: #203b69; font-size: 12px; font-weight: 700; }
+.ro-config-list > button,.ro-guild-list > button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 42px; padding: 5px; text-align: left; background: #fff; border: 1px solid #c1cad7; }
+.ro-config-list > button:hover,.ro-guild-list > button:hover:not(:disabled) { background: #e4edfb; border-color: #6f88b1; }
+.ro-config-list > button small,.ro-guild-list > button small { display: block; color: #657188; font-size: 9px; font-weight: 400; }
+
+.ro-classic-modal > .grid.grid-cols-3 button { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 8px; color: #3a4964; background: #e5eaf2; }
+.ro-classic-modal > .grid.grid-cols-3 button.is-active { color: #173f80; background: #fff; font-weight: 700; }
+.ro-guild-list { padding: 8px; background: #eef2f8; border: 1px solid #a9b5c8; }
+.ro-guild-list > button span:nth-child(2) { min-width: 0; }
+.ro-guild-list > button:disabled { opacity: .6; cursor: not-allowed; }
+.ro-mission-seal { display: grid; place-items: center; width: 30px; height: 30px; color: #fff; font-weight: 800; background: #d99b30; border-radius: 50%; }
+.ro-guild-message { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; color: #33415c; font-size: 11px; background: #e2e8f1; border-top: 1px solid #9eabc0; }
+
+/* Runerok brown-and-gold skin, matching the in-game reference windows. */
+.ro-game-stage {
+  grid-template-columns: minmax(250px, 1fr) minmax(0, 1320px) minmax(250px, 1fr);
+  background: #18130d;
+}
+
+.ro-canvas-stage {
+  border-color: #7f5b24;
+  background: #17110b;
+}
+
+.ro-side-column,
+.ro-right-column {
+  padding: 4px;
+  gap: 5px;
+  color: #f7df9a;
+  background: linear-gradient(90deg, #171109, #2b2113 60%, #161008);
+  border-color: #8a6327;
+}
+
+.ro-right-column {
+  background: linear-gradient(270deg, #171109, #2b2113 60%, #161008);
+}
+
+.ro-dock-window {
+  color: #f5dda0;
+  background: radial-gradient(circle at 50% 35%, #302416, #171109 75%);
+  border: 2px solid #8b6123;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px #33240f, inset 0 0 14px rgba(0, 0, 0, 0.7), 0 0 0 1px #0b0804;
+}
+
+.ro-dock-title,
+button.ro-dock-title {
+  min-height: 28px;
+  padding: 3px 8px;
+  color: #ffe3a0;
+  background: linear-gradient(#352719, #1b130b);
+  border-bottom: 1px solid #a4762d;
+  box-shadow: inset 0 1px 0 #69491b, inset 0 -1px 0 #0c0804;
+  text-shadow: 0 1px 2px #000;
+}
+
+.ro-player-panel { flex-basis: 220px; }
+.ro-menu-panel { flex-basis: 240px; }
+.ro-equipment-panel { flex: 0 0 218px; }
+.ro-attributes-panel { flex: 0 0 190px; }
+.ro-inventory-panel { flex: 1 1 auto; }
+
+.ro-level-badge,
+.ro-info-strip,
+.ro-derived-stats {
+  color: #f2d48c;
+  background: #21170d;
+  border-color: #705021;
+}
+
+.ro-player-panel strong,
+.ro-player-panel [class*="text-slate"],
+.ro-player-panel .text-slate-700 {
+  color: #f9dfa0 !important;
+}
+
+.ro-panel-gauge {
+  background: #0f0b07;
+  border-color: #8b672c;
+  box-shadow: inset 1px 1px 3px #000;
+}
+
+.ro-skill-grid { gap: 5px; }
+.ro-skill-cell,
+.ro-menu-button,
+.ro-equip-cell,
+.ro-mini-inventory button,
+.ro-empty-slot,
+.ro-active-skill {
+  color: #f3d794;
+  background: linear-gradient(145deg, #f4d389, #bf8d42);
+  border: 1px solid #6d4719;
+  box-shadow: inset 1px 1px 0 #ffeab5, inset -1px -1px 0 #78501f;
+  text-shadow: 0 1px 1px rgba(255,255,255,0.45);
+}
+
+.ro-skill-cell:hover,
+.ro-skill-cell.is-enabled,
+.ro-menu-button:hover,
+.ro-menu-button.is-active,
+.ro-active-skill.is-enabled {
+  color: #241407;
+  background: linear-gradient(145deg, #ffe5a4, #dca24b);
+  border-color: #d6a347;
+}
+
+.ro-skill-cell { color: #261709; }
+.ro-skill-cell small { color: #60411d; }
+.ro-skill-icon {
+  color: #34200e;
+  background: rgba(255, 244, 206, 0.68);
+  border-color: #7a5726;
+  box-shadow: inset 1px 1px 0 #fff1c8;
+}
+
+.ro-menu-button { color: #241407; }
+.ro-panel-footer {
+  color: #e2c27d;
+  background: #1d150c;
+  border-color: #6d4b1e;
+}
+
+.ro-equipment-overview {
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  gap: 7px;
+  padding: 7px;
+}
+
+.ro-character-paperdoll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: #f6d990;
+  font-size: 9px;
+  background: #d0a65f;
+  border: 1px solid #795321;
+  border-radius: 3px;
+}
+
+.ro-player-preview {
+  width: 66px;
+  height: 94px;
+  background-image: url('/game-assets/sprite-atlas.png');
+  background-repeat: no-repeat;
+  background-size: 500% 500%;
+  background-position: 0 0;
+}
+
+.ro-equip-cell {
+  min-height: 38px;
+  color: #2b1908;
+  background: #2a1e11;
+  border-color: #6f4e20;
+  box-shadow: inset 1px 1px 0 #46331a;
+}
+
+.ro-equip-cell small { color: #e2c37d; }
+.ro-empty-equip-dot { color: #755b32; }
+
+.ro-stat-row { border-color: #4e3516; }
+.ro-stat-row strong { color: #f5d98e; }
+.ro-stat-row button {
+  color: #2a1808;
+  background: #e0ae58;
+  border-color: #76501e;
+}
+.ro-stat-row button:disabled { color: #71552c; background: #6a512d; }
+.ro-derived-stats { margin: 0; align-content: start; font-size: 10px; }
+
+.ro-mini-inventory { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.ro-mini-inventory button,
+.ro-empty-slot {
+  background: linear-gradient(145deg, #f4d389, #c28d3c);
+  border-color: #76501e;
+}
+.ro-mini-inventory small {
+  color: #231305;
+  background: rgba(255, 235, 181, 0.82);
+}
+
+.ro-item-sprite {
+  display: inline-block;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  background-repeat: no-repeat;
+  image-rendering: auto;
+  filter: drop-shadow(0 1px 1px rgba(40, 20, 4, 0.65));
+}
+
+.ro-active-hotbar {
+  color: #f3d68c;
+  background: linear-gradient(#2c2114, #171008);
+  border-color: #8a6025;
+  box-shadow: inset 0 1px 0 #543a18;
+}
+.ro-hotbar-handle { color: #f2d38b; }
+.ro-active-skill { color: #2a1808; }
+.ro-active-skill small { color: #2a1808; }
+
+/* Apply the same brown/gold skin to every modal window in the game. */
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"] {
+  color: #f4d995 !important;
+  background: radial-gradient(circle at 50% 20%, #342619, #171109 72%) !important;
+  border-color: #9a6d29 !important;
+  box-shadow: inset 0 0 0 1px #3e2c13, 5px 7px 18px rgba(0,0,0,0.72) !important;
+}
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"] > div:first-child {
+  color: #ffe2a0 !important;
+  background: linear-gradient(#37291a, #191109) !important;
+  border-color: #926727 !important;
+}
+.ro-game-shell .fixed.inset-0 [class*="bg-slate-950"],
+.ro-game-shell .fixed.inset-0 [class*="bg-slate-900"] {
+  background: #1d150d !important;
+  border-color: #6d4b1e !important;
+}
+.ro-game-shell .fixed.inset-0 [class*="text-slate-"],
+.ro-game-shell .fixed.inset-0 [class*="text-amber-"] {
+  color: #e8cb87 !important;
+}
+
+/* Start screen uses the supplied full artwork; only the real three actions overlay it. */
+.ro-start-menu { background: #10253b !important; }
+.ro-start-art { object-fit: cover; object-position: center center; }
+.ro-start-menu .relative.z-10 { max-width: 470px; padding-bottom: 5vh; }
+.ro-start-menu [class*="bg-slate-900/90"] {
+  min-height: 0;
+  padding: 13px !important;
+  color: #f9dfa0 !important;
+  background: linear-gradient(180deg, rgba(43,31,19,0.96), rgba(20,14,8,0.96)) !important;
+  border-color: #a77a35 !important;
+  border-radius: 5px !important;
+  box-shadow: inset 0 0 0 1px #443016, 0 7px 22px rgba(0,0,0,0.58) !important;
+}
+.ro-start-menu [class*="bg-slate-900/90"] button {
+  color: #2b1909 !important;
+  background: linear-gradient(#ffe5a5, #c99649) !important;
+  border-color: #6f4818 !important;
+  box-shadow: inset 1px 1px 0 #fff0c0, inset -1px -1px 0 #81541f !important;
+}
+
+@media (max-width: 1180px) {
+  .ro-game-stage { grid-template-columns: 235px minmax(0, 1fr) 235px; }
+  .ro-equipment-panel { flex-basis: 198px; }
+  .ro-attributes-panel { flex-basis: 178px; }
+}
+
+@media (max-height: 680px) {
+  .ro-player-panel { flex-basis: 174px; }
+  .ro-menu-panel { flex-basis: 151px; }
+  .ro-equipment-panel { flex-basis: 178px; }
+  .ro-attributes-panel { flex-basis: 160px; }
+}
+
+/* Keep the in-game interface light; the start launcher keeps its own skin. */
+.ro-game-shell .ro-side-column { color:#17233d !important; background:linear-gradient(90deg,#f8faff,#dce4f0) !important; border-color:#7184a8 !important; }
+.ro-game-shell .ro-right-column { background:linear-gradient(270deg,#f8faff,#dce4f0) !important; }
+.ro-game-shell .ro-dock-window { color:#17233d !important; background:rgba(250,251,253,.99) !important; border:1px solid #7184a8 !important; border-radius:2px !important; box-shadow:inset 0 0 0 1px #c6cfdd,2px 2px 4px rgba(14,27,49,.24) !important; }
+.ro-game-shell .ro-dock-title { color:#1c315b !important; background:linear-gradient(#fafdff,#d5deec) !important; border-color:#8092b2 !important; box-shadow:inset 0 1px 0 #fff !important; text-shadow:none !important; }
+.ro-game-shell .ro-level-badge,.ro-game-shell .ro-info-strip,.ro-game-shell .ro-derived-stats { color:#27344e !important; background:#e7e9f0 !important; border-color:#bac3d1 !important; }
+.ro-game-shell .ro-skill-cell,.ro-game-shell .ro-menu-button,.ro-game-shell .ro-active-skill { color:#273b62 !important; background:radial-gradient(ellipse at center,#f9fbff,#dce4f0) !important; border-color:#8c9bb5 !important; box-shadow:inset 1px 1px 0 #fff,inset -1px -1px 0 #bdc6d4 !important; text-shadow:none !important; }
+.ro-game-shell .ro-skill-cell:hover,.ro-game-shell .ro-skill-cell.is-enabled,.ro-game-shell .ro-menu-button:hover,.ro-game-shell .ro-menu-button.is-active,.ro-game-shell .ro-active-skill.is-enabled { color:#173d7e !important; background:#d8e4f8 !important; border-color:#5574aa !important; }
+.ro-game-shell .ro-skill-icon { color:#263d68 !important; background:linear-gradient(#fff,#e1e6ef) !important; border-color:#8998b1 !important; }
+.ro-game-shell .ro-panel-footer { color:#45536c !important; background:linear-gradient(#f7f9fc,#dce3ed) !important; border-color:#a6b1c3 !important; }
+.ro-game-shell .ro-character-paperdoll { color:#4b5870 !important; background:#f7f8fb !important; border-color:#a8b3c5 !important; }
+.ro-game-shell .ro-equip-cell { color:#48566f !important; background:radial-gradient(ellipse at center,#e4e9f2,#f9fafc 58%) !important; border-color:#b0bacb !important; box-shadow:inset 1px 1px 0 #fff !important; }
+.ro-game-shell .ro-equip-cell small { color:#56637a !important; }
+.ro-game-shell .ro-stat-row { border-color:#d5dbe5 !important; }
+.ro-game-shell .ro-stat-row strong { color:#264682 !important; }
+.ro-game-shell .ro-stat-row button { color:#31558e !important; background:#eef3fb !important; border-color:#92a2bc !important; }
+.ro-game-shell .ro-mini-inventory button,.ro-game-shell .ro-empty-slot { background:radial-gradient(ellipse at center,#dfe5ef 0 34%,#f9fafc 37%) !important; border-color:#c0c8d5 !important; box-shadow:none !important; }
+.ro-game-shell .ro-active-hotbar { color:#334b76 !important; background:linear-gradient(#f9fafc,#dce3ed) !important; border-color:#7184a8 !important; box-shadow:inset 0 1px 0 #fff !important; }
+.ro-game-shell .ro-hotbar-handle { color:#334b76 !important; }
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"],.ro-game-shell .ro-classic-modal { color:#1d2a44 !important; background:linear-gradient(180deg,#fff,#edf1f7) !important; border-color:#7588ad !important; }
+.ro-game-shell .fixed.inset-0 > div[class*="max-w-"] > div:first-child,.ro-game-shell .ro-modal-title { color:#17233d !important; background:linear-gradient(#f9fbff,#d4ddea) !important; border-color:#8999b7 !important; }
+.ro-game-shell .fixed.inset-0 [class*="bg-slate-950"],.ro-game-shell .fixed.inset-0 [class*="bg-slate-900"] { background:#f6f8fb !important; border-color:#b1bccf !important; }
+.ro-game-shell .fixed.inset-0 [class*="text-slate-"],.ro-game-shell .fixed.inset-0 [class*="text-amber-"] { color:#33415c !important; }
+
+.ro-game-shell .ro-character-paperdoll { cursor:pointer; }
+.ro-game-shell .ro-character-paperdoll:hover { background:#e4ecf8 !important; border-color:#5574aa !important; }
+.ro-game-shell .ro-player-preview { position:relative; width:66px; height:94px; background:none !important; overflow:hidden; }
+.ro-game-shell .ro-preview-body,.ro-game-shell .ro-preview-head { position:absolute; left:50%; object-fit:contain; image-rendering:pixelated; transform:translateX(-50%); pointer-events:none; }
+.ro-game-shell .ro-preview-body { bottom:0; width:51px; height:88px; }
+.ro-game-shell .ro-preview-head { top:0; width:42px; height:48px; z-index:2; }
+
+.ro-head-selector { width:min(540px,94vw); overflow:hidden; border:2px solid #7588ad; box-shadow:0 12px 36px rgba(10,25,50,.38); }
+.ro-head-preview { display:flex; justify-content:center; gap:28px; padding:12px; background:#e8edf5; border-bottom:1px solid #b3bfd0; }
+.ro-head-preview div { display:flex; flex-direction:column; align-items:center; gap:2px; color:#52617a; font-size:10px; }
+.ro-head-preview img { width:54px; height:62px; object-fit:contain; image-rendering:pixelated; }
+.ro-head-help { margin:0; padding:8px 12px; color:#43516a; font-size:11px; text-align:center; }
+.ro-head-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; padding:10px 12px 14px; }
+.ro-head-grid button { display:flex; min-height:88px; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:#304567; font-size:10px; background:linear-gradient(#fff,#e3e9f2); border:1px solid #9aa9c0; box-shadow:inset 1px 1px 0 #fff; cursor:pointer; }
+.ro-head-grid button:hover,.ro-head-grid button.is-selected { color:#173d7e; background:#d6e4f8; border-color:#42679f; outline:2px solid rgba(73,112,171,.24); }
+.ro-head-grid img { width:48px; height:50px; object-fit:contain; image-rendering:pixelated; }

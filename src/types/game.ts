@@ -88,7 +88,7 @@ export interface ActiveMonster {
   x: number;
   y: number;
   currentHp: number;
-  state: 'IDLE' | 'MOVING' | 'CHASE' | 'ATTACKING' | 'DEAD';
+  state: 'IDLE' | 'MOVING' | 'CHASE' | 'ATTACKING' | 'DEAD' | 'RESPAWNING';
   targetX?: number;
   targetY?: number;
   path?: Position[];
@@ -98,6 +98,10 @@ export interface ActiveMonster {
   direction: 'left' | 'right' | 'up' | 'down';
   wanderTimer?: number;
   hitFlash?: number;
+  deathStartedAt?: number;
+  respawnStartedAt?: number;
+  nextWanderDelay?: number;
+  isElite?: boolean;
 }
 
 export interface DroppedItemInstance {
@@ -107,6 +111,17 @@ export interface DroppedItemInstance {
   y: number;
   amount: number;
   spawnTime: number;
+  rarity?: ItemRarity;
+}
+
+export type ItemRarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
+
+export interface ItemBonusStats {
+  atk?: number;
+  def?: number;
+  matk?: number;
+  maxHp?: number;
+  stats?: Partial<CharacterStats>;
 }
 
 export type EquipmentSlot = 
@@ -160,6 +175,8 @@ export interface InventoryItem {
   amount: number;
   isEquipped?: boolean;
   equippedSlot?: EquipmentSlot;
+  rarity?: ItemRarity;
+  bonusStats?: ItemBonusStats;
 }
 
 export interface SkillRule {
@@ -168,6 +185,11 @@ export interface SkillRule {
   condition: 'ALWAYS' | 'ENEMIES_GTE_2' | 'ENEMIES_GTE_3' | 'TARGET_LARGE' | 'HP_BELOW_50' | 'SP_GTE_30';
   priority: number;
   enabled: boolean;
+}
+
+export interface HotbarEntry {
+  kind: 'skill' | 'item';
+  refId: string;
 }
 
 export interface SkillData {
@@ -179,6 +201,13 @@ export interface SkillData {
   icon: string;
   minLevel: number;
   type: 'ACTIVE' | 'BUFF' | 'PASSIVE';
+  baseMultiplier?: number;
+  multiplierPerLevel?: number;
+  spCostPerLevel?: number;
+  areaRadius?: number;
+  maxTargets?: number;
+  buffDuration?: number;
+  buffAspdPercent?: number;
 }
 
 export interface MapData {
@@ -188,7 +217,7 @@ export interface MapData {
   width: number;
   height: number;
   bgm: string;
-  theme: 'grass' | 'cave' | 'desert' | 'dungeon' | 'gothic';
+  theme: 'grass' | 'cave' | 'desert' | 'dungeon' | 'gothic' | 'town';
   monsterSpawns: Array<{
     monsterId: string;
     count: number;
@@ -231,6 +260,8 @@ export interface SaveData {
   character: {
     name: string;
     className: 'Knight';
+    headStyle?: number;
+    jobLevel?: number;
     baseLevel: number;
     baseExp: number;
     currentHp: number;
@@ -245,6 +276,10 @@ export interface SaveData {
   currentMapId: string;
 
   skillRules: SkillRule[];
+  skillLevels?: Record<string, number>;
+  skillPoints?: number;
+  hotbar?: Array<HotbarEntry | null>;
+  claimedGuildMissions?: string[];
   autoPotionSettings: AutoPotionSettings;
   autoLootSettings: AutoLootSettings;
 
@@ -277,6 +312,9 @@ export type ActiveWindow =
   | 'refine' 
   | 'saveManager' 
   | 'settings' 
+  | 'hotbar'
+  | 'headSelector'
+  | 'guild'
   | 'devMode';
 
 export interface OfflineReport {

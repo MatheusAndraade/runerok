@@ -2,6 +2,8 @@ import React from 'react';
 import { SaveData, EquipmentSlot } from '../../types/game';
 import { ITEMS } from '../../data/items';
 import { Shield, X, MinusCircle } from 'lucide-react';
+import { ItemSprite } from '../ItemSprite';
+import { RARITIES } from '../../data/rarities';
 
 interface EquipmentWindowProps {
   saveData: SaveData;
@@ -49,20 +51,21 @@ export const EquipmentWindow: React.FC<EquipmentWindowProps> = ({
               const itemData = item ? ITEMS[item.itemId] : null;
 
               return (
-                <div key={slotInfo.key} className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 flex items-center justify-between gap-2">
+                <div key={slotInfo.key} className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 flex items-center justify-between gap-2" style={item ? { borderColor: RARITIES[item.rarity || 'COMMON'].color } : undefined}>
                   <div className="flex items-center gap-2.5 overflow-hidden">
                     <div className="w-9 h-9 rounded-lg bg-slate-900 border border-amber-900/40 flex items-center justify-center text-lg shrink-0">
-                      {itemData?.icon || '🛡️'}
+                      {itemData ? <ItemSprite itemId={itemData.id} className="w-8 h-8" /> : '·'}
                     </div>
                     <div className="min-w-0">
                       <span className="text-[10px] uppercase font-bold text-slate-500 block">{slotInfo.label}</span>
                       {item && itemData ? (
                         <div>
-                          <div className="font-bold text-xs sm:text-sm text-amber-300 truncate">
+                          <div className="font-bold text-xs sm:text-sm truncate" style={{ color: RARITIES[item.rarity || 'COMMON'].color }}>
                             {item.refineLevel > 0 ? `+${item.refineLevel} ` : ''}
                             {itemData.name}
                             {itemData.slots ? ` [${itemData.slots}]` : ''}
                           </div>
+                          <small style={{ color: RARITIES[item.rarity || 'COMMON'].color }}>{RARITIES[item.rarity || 'COMMON'].label}</small>
                           {item.cards.length > 0 && (
                             <div className="text-[10px] text-amber-400/90 font-mono">
                               Cartas: {item.cards.map(cId => ITEMS[cId]?.name).join(', ')}

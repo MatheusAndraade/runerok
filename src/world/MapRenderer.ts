@@ -1,14 +1,178 @@
 import { ActiveMonster, DroppedItemInstance, MapData, Position, CombatFloatingText, AttackParticle, PlayerState } from '../types/game';
 import { ITEMS } from '../data/items';
+import { ITEM_SPRITE_INDEX, getItemSpritePath } from '../data/itemSprites';
+import { GUILD_NPCS } from '../data/guildNpcs';
 
-const fieldBackground = new Image();
-fieldBackground.src = '/game-assets/prontera-field.png';
+const fieldBackgrounds: Record<string, HTMLImageElement> = {};
+[
+  ['prt_fild01', '/game-assets/prontera-field-01.png'],
+  ['prt_fild04', '/game-assets/prontera-field-04.png'],
+  ['prontera_guild', '/game-assets/maps/prontera-guild.png'],
+  ['pay_dun00', '/game-assets/maps/payon-cave.png'],
+  ['moc_fild07', '/game-assets/maps/sograt-desert.png'],
+  ['orc_dun01', '/game-assets/maps/orc-dungeon.png'],
+  ['cmd_fild02', '/game-assets/maps/comodo-beach.png'],
+  ['c_tower1', '/game-assets/maps/clock-tower.png'],
+  ['gl_prison', '/game-assets/maps/glast-prison.png'],
+  ['ra_san01', '/game-assets/maps/volcano-sanctuary.png']
+].forEach(([id, source]) => {
+  const image = new Image();
+  image.src = source;
+  fieldBackgrounds[id] = image;
+});
 
-const spriteAtlas = new Image();
-spriteAtlas.src = '/game-assets/sprite-atlas.png';
+const defaultFieldBackground = new Image();
+defaultFieldBackground.src = '/game-assets/prontera-field.png';
 
-const spriteAtlasBack = new Image();
-spriteAtlasBack.src = '/game-assets/sprite-atlas-back.png';
+const SPRITE_NAMES = [
+  'player', 'poring', 'fabre', 'lunatic', 'pupa',
+  'poporing', 'rocker', 'spore', 'jiboia', 'zombie',
+  'skeleton', 'pecopeco', 'soldier_skeleton', 'metaller', 'orc_warrior',
+  'zenorc', 'high_orc', 'mummy', 'anolian', 'minorous',
+  'clock', 'alarm', 'injustice', 'raydric', 'golem_lava'
+];
+
+type SpritePose = 'idle' | 'up' | 'walk' | 'walk-up' | 'attack' | 'attack-up';
+const spriteImages: Record<SpritePose, Record<string, HTMLImageElement>> = {
+  idle: {}, up: {}, walk: {}, 'walk-up': {}, attack: {}, 'attack-up': {}
+};
+
+(Object.keys(spriteImages) as SpritePose[]).forEach(pose => {
+  SPRITE_NAMES.forEach(name => {
+    const image = new Image();
+    image.src = `/game-assets/sprites/${pose}/${name}.png`;
+    spriteImages[pose][name] = image;
+  });
+});
+
+type FacingDirection = 'left' | 'right' | 'up' | 'down';
+type OfficialPose = 'idle' | 'walk' | 'attack' | 'death';
+type OfficialFrameSet = Partial<Record<OfficialPose, Partial<Record<'left' | 'up' | 'down', HTMLImageElement[]>>>>;
+
+const officialFrames: Record<string, OfficialFrameSet> = {};
+const officialCounts: Record<string, Record<OfficialPose, Partial<Record<'left' | 'up' | 'down', number>>>> = {
+  knight: {
+    idle: { down: 2, left: 2, up: 2 },
+    walk: { down: 8, left: 8, up: 8 },
+    attack: { down: 6, left: 6, up: 7 },
+    death: { down: 1 }
+  },
+  poring: {
+    idle: { down: 2, left: 2, up: 2 },
+    walk: { down: 8, left: 4, up: 8 },
+    attack: { down: 4, left: 4, up: 4 },
+    death: { down: 3 }
+  },
+  lunatic: {
+    idle: { down: 2, left: 2, up: 2 },
+    walk: { down: 4, left: 4, up: 4 },
+    attack: { down: 4, left: 4, up: 3 },
+    death: { down: 3 }
+  },
+  fabre: {
+    idle: { down: 2, left: 2, up: 2 },
+    walk: { down: 4, left: 5, up: 4 },
+    attack: { down: 5, left: 5, up: 5 },
+    death: { down: 4 }
+  },
+  pupa: {
+    idle: { down: 2, left: 2, up: 2 },
+    walk: { down: 5, left: 5, up: 5 },
+    attack: { down: 3, left: 3, up: 3 },
+    death: { down: 3 }
+  }
+};
+
+Object.entries(officialCounts).forEach(([entity, poses]) => {
+  officialFrames[entity] = {};
+  (Object.keys(poses) as OfficialPose[]).forEach(pose => {
+    officialFrames[entity][pose] = {};
+    Object.entries(poses[pose]).forEach(([direction, count]) => {
+      const frames: HTMLImageElement[] = [];
+      for (let index = 0; index < (count || 0); index++) {
+        const image = new Image();
+        const root = entity === 'knight' ? '/game-assets/official/knight' : `/game-assets/official/monsters/${entity}`;
+        image.src = `${root}/${pose}/${direction}/${index}.png`;
+        frames.push(image);
+      }
+      officialFrames[entity][pose]![direction as 'left' | 'up' | 'down'] = frames;
+    });
+  });
+});
+
+const officialHeads: Array<Record<'left' | 'up' | 'down', HTMLImageElement>> = Array.from({ length: 10 }, (_, style) => {
+  const result = {} as Record<'left' | 'up' | 'down', HTMLImageElement>;
+  (['left', 'up', 'down'] as const).forEach(direction => {
+    const image = new Image();
+    image.src = `/game-assets/official/heads/head-${String(style).padStart(2, '0')}/${direction}.png`;
+    result[direction] = image;
+  });
+  return result;
+});
+
+const guildNpcImages: Record<string, HTMLImageElement> = {};
+['kafra-merchant', 'blacksmith', 'mission-clerk'].forEach(name => {
+  const image = new Image();
+  image.src = `/game-assets/official/npcs/${name}.png`;
+  guildNpcImages[name] = image;
+});
+
+function drawOfficialEntity(
+  ctx: CanvasRenderingContext2D,
+  entity: string,
+  x: number,
+  y: number,
+  height: number,
+  direction: FacingDirection,
+  pose: OfficialPose,
+  animFrame: number,
+  attackProgress: number = 0,
+  headStyle?: number
+): boolean {
+  const sourceDirection = direction === 'right' ? 'left' : direction;
+  const poseFrames = officialFrames[entity]?.[pose]?.[sourceDirection]
+    || officialFrames[entity]?.[pose]?.down
+    || officialFrames[entity]?.idle?.[sourceDirection]
+    || officialFrames[entity]?.idle?.down;
+  if (!poseFrames?.length) return false;
+
+  const normalizedProgress = Math.max(0, Math.min(1, attackProgress));
+  const index = pose === 'attack'
+    ? Math.min(poseFrames.length - 1, Math.floor((1 - normalizedProgress) * poseFrames.length))
+    : pose === 'death'
+      ? Math.min(poseFrames.length - 1, Math.floor(normalizedProgress * poseFrames.length))
+      : Math.floor(animFrame / 6) % poseFrames.length;
+  const frame = poseFrames[index];
+  if (!frame?.complete || frame.naturalWidth === 0) return false;
+
+  ctx.save();
+  ctx.translate(x, y);
+  if (direction === 'right') ctx.scale(-1, 1);
+  ctx.imageSmoothingEnabled = false;
+  const width = height * (frame.naturalWidth / Math.max(1, frame.naturalHeight));
+  const attackPhase = pose === 'attack' ? Math.sin((1 - normalizedProgress) * Math.PI) : 0;
+  ctx.drawImage(frame, -width / 2, -height * 0.78 + attackPhase * 2, width, height);
+
+  if (entity === 'knight' && headStyle !== undefined) {
+    const style = Math.max(0, Math.min(officialHeads.length - 1, headStyle));
+    const head = officialHeads[style]?.[sourceDirection];
+    if (head?.complete && head.naturalWidth > 0) {
+      const directionOffset = sourceDirection === 'up' ? -1 : sourceDirection === 'left' ? 1 : 0;
+      const headHeight = height * 0.44;
+      const headWidth = headHeight * (head.naturalWidth / Math.max(1, head.naturalHeight));
+      ctx.drawImage(head, -headWidth / 2 + directionOffset, -height * 0.82 + attackPhase * 2, headWidth, headHeight);
+    }
+  }
+  ctx.restore();
+  return true;
+}
+
+const itemImages: Record<string, HTMLImageElement> = {};
+Object.keys(ITEM_SPRITE_INDEX).forEach(itemId => {
+  const image = new Image();
+  image.src = getItemSpritePath(itemId);
+  itemImages[itemId] = image;
+});
 
 const MONSTER_SPRITES: Record<string, number> = {
   poring: 1,
@@ -38,39 +202,26 @@ const MONSTER_SPRITES: Record<string, number> = {
   doppelganger: 23
 };
 
-function drawAtlasSprite(
+function drawEntitySprite(
   ctx: CanvasRenderingContext2D,
-  index: number,
+  entityName: string,
   x: number,
   y: number,
   size: number,
-  direction: 'left' | 'right' | 'up' | 'down' = 'down'
+  direction: 'left' | 'right' | 'up' | 'down' = 'down',
+  pose: 'idle' | 'walk' | 'attack' = 'idle'
 ): boolean {
-  const atlas = direction === 'up' ? spriteAtlasBack : spriteAtlas;
-  if (!atlas.complete || atlas.naturalWidth === 0) return false;
-
-  const cols = 5;
-  const rows = 5;
-  const sourceW = atlas.naturalWidth / cols;
-  const sourceH = atlas.naturalHeight / rows;
-  const col = index % cols;
-  const row = Math.floor(index / cols);
+  const spritePose: SpritePose = pose === 'attack'
+    ? (direction === 'up' ? 'attack-up' : 'attack')
+    : pose === 'walk' ? (direction === 'up' ? 'walk-up' : 'walk') : direction === 'up' ? 'up' : 'idle';
+  const sprite = spriteImages[spritePose][entityName];
+  if (!sprite?.complete || sprite.naturalWidth === 0) return false;
 
   ctx.save();
   ctx.translate(x, y);
   if (direction === 'right') ctx.scale(-1, 1);
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(
-    atlas,
-    col * sourceW,
-    row * sourceH,
-    sourceW,
-    sourceH,
-    -size / 2,
-    -size * 0.72,
-    size,
-    size
-  );
+  ctx.drawImage(sprite, -size / 2, -size * 0.72, size, size);
   ctx.restore();
   return true;
 }
@@ -83,6 +234,7 @@ export class MapRenderer {
     playerDir: 'left' | 'right' | 'up' | 'down',
     playerState: PlayerState,
     playerAnimFrame: number,
+    playerAttackAnimationProgress: number,
     hpPercent: number,
     monsters: ActiveMonster[],
     droppedItems: DroppedItemInstance[],
@@ -92,7 +244,8 @@ export class MapRenderer {
     attackParticles: AttackParticle[] = [],
     mapFadeAlpha: number = 0,
     mapTransitionName: string = '',
-    playerName: string = 'Cavaleiro'
+    playerName: string = 'Cavaleiro',
+    playerHeadStyle: number = 0
   ) {
     const canvasW = ctx.canvas.width;
     const canvasH = ctx.canvas.height;
@@ -101,23 +254,14 @@ export class MapRenderer {
 
     ctx.clearRect(0, 0, canvasW, canvasH);
 
-    // Calculate camera zoom scale to fit entire combat map nicely on screen
-    const scale = Math.min(canvasW / mapW, canvasH / mapH);
-    const offsetX = (canvasW - mapW * scale) / 2;
-    const offsetY = (canvasH - mapH * scale) / 2;
+    // The canvas is the playable area: scale it to its exact bounds so the
+    // source image is never repeated and actors can never enter side panels.
+    const scaleX = canvasW / mapW;
+    const scaleY = canvasH / mapH;
 
     ctx.save();
-    // Extend the painted field behind the playable bounds instead of showing letterboxes.
-    if (map.theme === 'grass' && fieldBackground.complete && fieldBackground.naturalWidth > 0) {
-      ctx.drawImage(fieldBackground, 0, 0, canvasW, canvasH);
-    } else {
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(0, 0, canvasW, canvasH);
-    }
-
     // Translate and scale coordinate system to full map bounds
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
+    ctx.scale(scaleX, scaleY);
 
     // Clip rendering strictly to map area
     ctx.beginPath();
@@ -133,20 +277,18 @@ export class MapRenderer {
       if (map.theme !== 'grass') MapRenderer.drawObstacle(ctx, obs);
     });
 
+    if (map.id === 'prontera_guild') MapRenderer.drawGuildNpcs(ctx);
+
     // 3. Draw Dropped Items
     droppedItems.forEach(item => {
       MapRenderer.drawDroppedItem(ctx, item);
     });
 
     // 4. Draw Monsters
-    monsters.forEach(m => {
-      if (m.state !== 'DEAD') {
-        MapRenderer.drawMonster(ctx, m);
-      }
-    });
+    monsters.forEach(m => MapRenderer.drawMonster(ctx, m));
 
     // 5. Draw Knight Player Character with Save Name
-    MapRenderer.drawPlayer(ctx, playerPos, playerDir, playerState, playerAnimFrame, hpPercent, playerName);
+    MapRenderer.drawPlayer(ctx, playerPos, playerDir, playerState, playerAnimFrame, playerAttackAnimationProgress, hpPercent, playerName, playerHeadStyle);
 
     // 6. Draw Level Up Golden Effect Ring
     if (levelUpEffect.active) {
@@ -215,7 +357,14 @@ export class MapRenderer {
   }
 
   private static drawGround(ctx: CanvasRenderingContext2D, map: MapData, w: number, h: number) {
+    const paintedBackground = fieldBackgrounds[map.id];
+    if (paintedBackground?.complete && paintedBackground.naturalWidth > 0) {
+      ctx.drawImage(paintedBackground, 0, 0, w, h);
+      return;
+    }
+
     if (map.theme === 'grass') {
+      const fieldBackground = fieldBackgrounds[map.id] || defaultFieldBackground;
       if (fieldBackground.complete && fieldBackground.naturalWidth > 0) {
         ctx.drawImage(fieldBackground, 0, 0, w, h);
         const tint = ctx.createLinearGradient(0, 0, 0, h);
@@ -321,6 +470,63 @@ export class MapRenderer {
     }
   }
 
+  private static drawGuildNpcs(ctx: CanvasRenderingContext2D) {
+    GUILD_NPCS.forEach(npc => {
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.beginPath();
+      ctx.ellipse(npc.x, npc.y + 15, 18, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const sprite = guildNpcImages[npc.sprite];
+      if (sprite?.complete && sprite.naturalWidth > 0) {
+        const width = npc.height * (sprite.naturalWidth / Math.max(1, sprite.naturalHeight));
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(sprite, npc.x - width / 2, npc.y - npc.height + 18, width, npc.height);
+      }
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 3;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Tahoma';
+      ctx.fillText(npc.name, npc.x, npc.y - npc.height + 8);
+      ctx.fillStyle = '#ffe6a7';
+      ctx.font = '9px Tahoma';
+      ctx.fillText(`${npc.role} • clique`, npc.x, npc.y - npc.height + 19);
+      ctx.restore();
+    });
+    return;
+    // Legacy fallback kept below for old generated sprite sheets.
+    const npcs = [
+      { x: 165, y: 300, name: 'Mercadora Kafra', role: 'Compra e venda', sprite: 'kafra-merchant', height: 86 },
+      { x: 640, y: 300, name: 'Hollgrehenn', role: 'Forja e montagem', sprite: 'blacksmith', height: 92 },
+      { x: 400, y: 150, name: 'Agente de Missões', role: 'Contratos da guilda', sprite: 'mission-clerk', height: 88 }
+    ];
+
+    npcs.forEach(npc => {
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.beginPath();
+      ctx.ellipse(npc.x, npc.y + 15, 18, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      const sprite = guildNpcImages[npc.sprite];
+      if (sprite?.complete && sprite.naturalWidth > 0) {
+        ctx.imageSmoothingEnabled = false;
+        const width = npc.height * (sprite.naturalWidth / Math.max(1, sprite.naturalHeight));
+        ctx.drawImage(sprite, npc.x - width / 2, npc.y - npc.height + 18, width, npc.height);
+      }
+      ctx.font = 'bold 11px Tahoma';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 3;
+      ctx.fillText(npc.name, npc.x, npc.y - npc.height + 8);
+      ctx.font = '9px Tahoma';
+      ctx.fillStyle = '#ffe6a7';
+      ctx.fillText(npc.role, npc.x, npc.y - npc.height + 19);
+      ctx.restore();
+    });
+  }
+
   private static drawObstacle(ctx: CanvasRenderingContext2D, obs: { x: number; y: number; w: number; h: number; type: string }) {
     ctx.save();
     // Drop Shadow
@@ -413,9 +619,14 @@ export class MapRenderer {
       ctx.fill();
     }
 
-    // Icon rendering
-    ctx.font = '18px sans-serif';
-    ctx.fillText(itemData?.icon || '📦', item.x - 9, item.y + pulse);
+    // Item sprite rendering
+    const itemSprite = itemImages[item.itemId];
+    if (itemSprite?.complete && itemSprite.naturalWidth > 0) {
+      ctx.drawImage(itemSprite, item.x - 17, item.y - 18 + pulse, 34, 34);
+    } else {
+      ctx.font = '18px sans-serif';
+      ctx.fillText(itemData?.icon || '📦', item.x - 9, item.y + pulse);
+    }
 
     ctx.restore();
   }
@@ -423,11 +634,42 @@ export class MapRenderer {
   private static drawMonster(ctx: CanvasRenderingContext2D, m: ActiveMonster) {
     ctx.save();
 
+    const now = Date.now();
+    const deathProgress = m.state === 'DEAD'
+      ? Math.min(1, (now - (m.deathStartedAt ?? now)) / 650)
+      : 0;
+    if (m.state === 'DEAD' && deathProgress >= 1) {
+      ctx.restore();
+      return;
+    }
+    if (m.state === 'DEAD') {
+      ctx.globalAlpha = 1 - deathProgress;
+      ctx.translate(m.x, m.y);
+      ctx.rotate(deathProgress * 0.42 * (m.direction === 'left' ? -1 : 1));
+      ctx.scale(1 + deathProgress * 0.12, Math.max(0.12, 1 - deathProgress * 0.82));
+      ctx.translate(-m.x, -m.y);
+    } else if (m.state === 'RESPAWNING') {
+      const respawnProgress = Math.min(1, (now - (m.respawnStartedAt ?? now)) / 700);
+      const eased = 1 - Math.pow(1 - respawnProgress, 3);
+      ctx.globalAlpha = Math.max(0.15, eased);
+      ctx.translate(m.x, m.y);
+      ctx.scale(0.25 + eased * 0.75, 0.25 + eased * 0.75);
+      ctx.translate(-m.x, -m.y);
+    }
+
     const isHit = (m.hitFlash || 0) > 0;
     const shakeX = isHit ? Math.sin((m.hitFlash || 0) * 80) * 6 : 0;
     const shakeY = isHit ? Math.cos((m.hitFlash || 0) * 80) * 3 : 0;
 
     ctx.translate(shakeX, shakeY);
+
+    if (m.isElite && m.state !== 'DEAD') {
+      ctx.strokeStyle = `rgba(168,85,247,${0.68 + Math.sin(now / 170) * 0.2})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(m.x, m.y + 8, 25, 12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     // Monster Shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
@@ -439,8 +681,25 @@ export class MapRenderer {
     const bobbing = Math.sin(Date.now() / 150) * 2;
     const monsterId = m.data.id;
     const spriteIndex = MONSTER_SPRITES[monsterId] ?? (m.data.isMvp ? 23 : 1);
+    const spriteName = SPRITE_NAMES[spriteIndex] || 'poring';
     const spriteSize = m.data.size === 'Grande' ? 82 : m.data.size === 'Pequeno' ? 64 : 72;
-    const spriteDrawn = drawAtlasSprite(ctx, spriteIndex, m.x, m.y + bobbing, spriteSize, m.direction);
+    const isMoving = m.state === 'MOVING' || m.state === 'CHASE';
+    const pose = m.attackAnimationProgress > 0 ? 'attack' : isMoving ? 'walk' : 'idle';
+    const hasOfficialSprite = ['poring', 'lunatic', 'fabre', 'pupa'].includes(monsterId);
+    const officialPose: OfficialPose = m.state === 'DEAD' ? 'death' : pose;
+    const officialHeight = m.data.size === 'Grande' ? 62 : m.data.size === 'Pequeno' ? 46 : 54;
+    const officialDrawn = hasOfficialSprite && drawOfficialEntity(
+      ctx,
+      monsterId,
+      m.x,
+      m.y + bobbing,
+      officialHeight,
+      m.direction,
+      officialPose,
+      m.animFrame,
+      m.state === 'DEAD' ? deathProgress : m.attackAnimationProgress
+    );
+    const spriteDrawn = officialDrawn || drawEntitySprite(ctx, spriteName, m.x, m.y + bobbing, spriteSize, m.direction, pose);
 
     if (!spriteDrawn && (monsterId === 'poring' || monsterId === 'poporing')) {
       ctx.fillStyle = isHit ? '#ffffff' : (monsterId === 'poring' ? '#fb7185' : '#4ade80');
@@ -635,6 +894,11 @@ export class MapRenderer {
       ctx.restore();
     }
 
+    if (m.state === 'DEAD') {
+      ctx.restore();
+      return;
+    }
+
     // HP Bar
     const hpPct = Math.max(0, m.currentHp / m.data.hp);
     ctx.fillStyle = '#000';
@@ -643,11 +907,12 @@ export class MapRenderer {
     ctx.fillRect(m.x - 17, m.y - 27, 34 * hpPct, 3);
 
     // Name tag
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = m.isElite ? '#f0abfc' : '#fff';
     ctx.font = '10px sans-serif';
     ctx.shadowColor = '#000';
     ctx.shadowBlur = 3;
-    ctx.fillText(m.data.name, m.x - ctx.measureText(m.data.name).width / 2, m.y - 32);
+    const label = m.isElite ? `★ ${m.data.name}` : m.data.name;
+    ctx.fillText(label, m.x - ctx.measureText(label).width / 2, m.y - 32);
 
     ctx.restore();
   }
@@ -658,8 +923,10 @@ export class MapRenderer {
     dir: 'left' | 'right' | 'up' | 'down',
     state: PlayerState,
     animFrame: number,
+    attackAnimationProgress: number,
     hpPercent: number,
-    playerName: string = 'Cavaleiro'
+    playerName: string = 'Cavaleiro',
+    headStyle: number = 0
   ) {
     ctx.save();
 
@@ -672,7 +939,22 @@ export class MapRenderer {
     // Knight sprite
     const bob = state === 'MOVING' || state === 'CHASE' ? Math.sin(animFrame * 0.5) * 3 : 0;
     const isAttacking = state === 'ATTACKING' || state === 'CASTING';
-    const spriteDrawn = drawAtlasSprite(ctx, 0, pos.x, pos.y + bob, 84, dir);
+    const pose = isAttacking && attackAnimationProgress > 0
+      ? 'attack'
+      : (state === 'MOVING' || state === 'CHASE') ? 'walk' : 'idle';
+    const officialDrawn = drawOfficialEntity(
+      ctx,
+      'knight',
+      pos.x,
+      pos.y + bob,
+      82,
+      dir,
+      pose,
+      animFrame,
+      attackAnimationProgress,
+      headStyle
+    );
+    const spriteDrawn = officialDrawn || drawEntitySprite(ctx, 'player', pos.x, pos.y + bob, 84, dir, pose);
 
     if (!spriteDrawn) {
       // Cape / Armor Body fallback
@@ -692,16 +974,6 @@ export class MapRenderer {
       // Helmet Plume
       ctx.fillStyle = '#f59e0b';
       ctx.fillRect(pos.x - 2, pos.y - 34 + bob, 4, 8);
-    }
-
-    // Sword Swing animation
-    if (isAttacking) {
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      const swingAngle = (animFrame % 10) * 0.2;
-      ctx.arc(pos.x, pos.y - 10, 28, swingAngle, swingAngle + 1.2);
-      ctx.stroke();
     }
 
     // Floating HP/SP bar under Knight

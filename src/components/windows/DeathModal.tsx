@@ -33,7 +33,8 @@ export const DeathModal: React.FC<DeathModalProps> = ({ mapName, onRespawn }) =>
           </div>
           <p>• HP & SP zerados</p>
           <p>• O progresso atual da caça foi interrompido</p>
-          <p>• Clique no botão abaixo para restaurar seus atributos e retornar em segurança!</p>
+          <p>• Você será levado à Guilda de Prontera com HP e SP restaurados</p>
+          <p>• Na guilda você poderá negociar, forjar equipamentos e resgatar missões</p>
         </div>
 
         {/* Respawn Button */}
@@ -42,7 +43,7 @@ export const DeathModal: React.FC<DeathModalProps> = ({ mapName, onRespawn }) =>
           className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl border border-amber-300/40 cursor-pointer active:scale-95 transition-all"
         >
           <RefreshCw className="w-5 h-5 animate-spin" style={{ animationDuration: '6s' }} />
-          <span>RENASCER EM PRONTERA</span>
+          <span>RETORNAR À GUILDA DE PRONTERA</span>
         </button>
       </div>
     </div>

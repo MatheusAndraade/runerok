@@ -7,6 +7,7 @@ export class CombatCalculator {
     stats: CharacterStats,
     equippedItems: Record<EquipmentSlot, InventoryItem | null>
   ): DerivedStats {
+    stats = { ...stats };
     let equipAtk = 0;
     let equipDef = 0;
     let equipMatk = 0;
@@ -26,6 +27,14 @@ export class CombatCalculator {
       if (itemData.atkBonus) equipAtk += itemData.atkBonus + item.refineLevel * 7;
       if (itemData.defBonus) equipDef += itemData.defBonus + item.refineLevel * 2;
       if (itemData.matkBonus) equipMatk += itemData.matkBonus;
+      equipAtk += item.bonusStats?.atk || 0;
+      equipDef += item.bonusStats?.def || 0;
+      equipMatk += item.bonusStats?.matk || 0;
+      if (item.bonusStats?.stats) {
+        (Object.keys(item.bonusStats.stats) as Array<keyof CharacterStats>).forEach(stat => {
+          stats[stat] += item.bonusStats?.stats?.[stat] || 0;
+        });
+      }
       if (itemData.weaponType) weaponType = itemData.weaponType;
 
       // Cards bonuses
@@ -43,11 +52,12 @@ export class CombatCalculator {
     });
 
     // Base Formulas
-    const maxHp = Math.floor(100 + baseLevel * 45 + stats.vit * 22 + (baseLevel * stats.vit * 0.8));
+    const rarityHp = Object.values(equippedItems).reduce((sum, item) => sum + (item?.bonusStats?.maxHp || 0), 0);
+    const maxHp = Math.floor(100 + baseLevel * 45 + stats.vit * 22 + (baseLevel * stats.vit * 0.8) + rarityHp);
     const maxSp = Math.floor(20 + baseLevel * 8 + stats.int * 6);
 
     const baseAtk = Math.floor(stats.str + (stats.str / 10) ** 2 + stats.dex / 5 + stats.luk / 5);
-    const totalAtk = baseAtk + equipAtk;
+    const totalAtk = Math.floor((baseAtk + equipAtk) * (1 + Math.min(99, baseLevel) * 0.003));
 
     const baseMatk = Math.floor(stats.int + (stats.int / 8) ** 2);
     const totalMatk = baseMatk + equipMatk;
@@ -70,8 +80,8 @@ export class CombatCalculator {
     const attacksPerSec = Math.max(0.5, Number((50 / (200 - aspdVal)).toFixed(2)));
 
     // Attack Range
-    let range = 28; // melee
-    if (weaponType === 'spear' || weaponType === 'twoHandSpear') range = 40;
+    let range = 54; // visual melee spacing between complete sprites
+    if (weaponType === 'spear' || weaponType === 'twoHandSpear') range = 70;
 
     const weightLimit = 2000 + (stats.str * 30);
     const moveSpeed = Math.floor(80 + (stats.agi * 0.2)); // pixels/sec

@@ -10,6 +10,7 @@ export const SKILLS: Record<string, SkillData> = {
     icon: '💥',
     minLevel: 10,
     type: 'ACTIVE'
+    ,baseMultiplier: 1.8, multiplierPerLevel: 0.18, spCostPerLevel: 1, areaRadius: 105, maxTargets: 5
   },
   'pierce': {
     id: 'pierce',
@@ -20,6 +21,7 @@ export const SKILLS: Record<string, SkillData> = {
     icon: '🔱',
     minLevel: 5,
     type: 'ACTIVE'
+    ,baseMultiplier: 1.35, multiplierPerLevel: 0.12, spCostPerLevel: 1
   },
   'brandish_spear': {
     id: 'brandish_spear',
@@ -30,6 +32,7 @@ export const SKILLS: Record<string, SkillData> = {
     icon: '🌪️',
     minLevel: 8,
     type: 'ACTIVE'
+    ,baseMultiplier: 1.55, multiplierPerLevel: 0.16, spCostPerLevel: 1, areaRadius: 130, maxTargets: 8
   },
   'bash': {
     id: 'bash',
@@ -40,6 +43,7 @@ export const SKILLS: Record<string, SkillData> = {
     icon: '⚔️',
     minLevel: 1,
     type: 'ACTIVE'
+    ,baseMultiplier: 1.35, multiplierPerLevel: 0.11, spCostPerLevel: 1
   },
   'two_hand_quicken': {
     id: 'two_hand_quicken',
@@ -50,6 +54,7 @@ export const SKILLS: Record<string, SkillData> = {
     icon: '⚡',
     minLevel: 1,
     type: 'BUFF'
+    ,spCostPerLevel: 1, buffDuration: 45, buffAspdPercent: 15
   },
   'peco_peco_ride': {
     id: 'peco_peco_ride',
