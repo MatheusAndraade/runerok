@@ -52,9 +52,9 @@ type OfficialFrameSet = Partial<Record<OfficialPose, Partial<Record<'left' | 'up
 const officialFrames: Record<string, OfficialFrameSet> = {};
 const officialCounts: Record<string, Record<OfficialPose, Partial<Record<'left' | 'up' | 'down', number>>>> = {
   knight: {
-    idle: { down: 2, left: 2, up: 2 },
-    walk: { down: 8, left: 8, up: 8 },
-    attack: { down: 6, left: 6, up: 7 },
+    idle: { down: 1, left: 1, up: 1 },
+    walk: { down: 2, left: 2, up: 2 },
+    attack: { down: 2, left: 2, up: 2 },
     death: { down: 1 }
   },
   poring: {
@@ -64,9 +64,9 @@ const officialCounts: Record<string, Record<OfficialPose, Partial<Record<'left' 
     death: { down: 3 }
   },
   lunatic: {
-    idle: { down: 2, left: 2, up: 2 },
+    idle: { down: 4, left: 4, up: 4 },
     walk: { down: 4, left: 4, up: 4 },
-    attack: { down: 4, left: 4, up: 3 },
+    attack: { down: 4, left: 4, up: 4 },
     death: { down: 3 }
   },
   fabre: {
@@ -80,6 +80,24 @@ const officialCounts: Record<string, Record<OfficialPose, Partial<Record<'left' 
     walk: { down: 5, left: 5, up: 5 },
     attack: { down: 3, left: 3, up: 3 },
     death: { down: 3 }
+  },
+  poporing: {
+    idle: { down: 4, left: 4, up: 4 },
+    walk: { down: 4, left: 4, up: 4 },
+    attack: { down: 4, left: 4, up: 4 },
+    death: {}
+  },
+  spore: {
+    idle: { down: 8, left: 8, up: 8 },
+    walk: { down: 8, left: 8, up: 8 },
+    attack: { down: 5, left: 5, up: 5 },
+    death: {}
+  },
+  rocker: {
+    idle: { down: 6, left: 6, up: 6 },
+    walk: { down: 3, left: 3, up: 3 },
+    attack: { down: 3, left: 3, up: 3 },
+    death: {}
   }
 };
 
@@ -141,7 +159,7 @@ function drawOfficialEntity(
     ? Math.min(poseFrames.length - 1, Math.floor((1 - normalizedProgress) * poseFrames.length))
     : pose === 'death'
       ? Math.min(poseFrames.length - 1, Math.floor(normalizedProgress * poseFrames.length))
-      : Math.floor(animFrame / 6) % poseFrames.length;
+      : Math.floor(animFrame / (pose === 'idle' ? 10 : 5)) % poseFrames.length;
   const frame = poseFrames[index];
   if (!frame?.complete || frame.naturalWidth === 0) return false;
 
@@ -153,14 +171,15 @@ function drawOfficialEntity(
   const attackPhase = pose === 'attack' ? Math.sin((1 - normalizedProgress) * Math.PI) : 0;
   ctx.drawImage(frame, -width / 2, -height * 0.78 + attackPhase * 2, width, height);
 
-  if (entity === 'knight' && headStyle !== undefined) {
+  // The current Knight frames already contain the head, keeping both layers perfectly aligned.
+  if (entity === 'knight' && headStyle !== undefined && pose === 'death') {
     const style = Math.max(0, Math.min(officialHeads.length - 1, headStyle));
     const head = officialHeads[style]?.[sourceDirection];
     if (head?.complete && head.naturalWidth > 0) {
       const directionOffset = sourceDirection === 'up' ? -1 : sourceDirection === 'left' ? 1 : 0;
-      const headHeight = height * 0.44;
+      const headHeight = height * 0.42;
       const headWidth = headHeight * (head.naturalWidth / Math.max(1, head.naturalHeight));
-      ctx.drawImage(head, -headWidth / 2 + directionOffset, -height * 0.82 + attackPhase * 2, headWidth, headHeight);
+      ctx.drawImage(head, -headWidth / 2 + directionOffset, -height * 0.9 + attackPhase * 1.25, headWidth, headHeight);
     }
   }
   ctx.restore();
@@ -220,8 +239,13 @@ function drawEntitySprite(
   ctx.save();
   ctx.translate(x, y);
   if (direction === 'right') ctx.scale(-1, 1);
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(sprite, -size / 2, -size * 0.72, size, size);
+  const preserveRockerFrame = entityName === 'rocker';
+  const drawHeight = size;
+  const drawWidth = preserveRockerFrame
+    ? drawHeight * (sprite.naturalWidth / Math.max(1, sprite.naturalHeight))
+    : size;
+  ctx.imageSmoothingEnabled = !preserveRockerFrame;
+  ctx.drawImage(sprite, -drawWidth / 2, -drawHeight * 0.72, drawWidth, drawHeight);
   ctx.restore();
   return true;
 }
@@ -322,12 +346,17 @@ export class MapRenderer {
     // 8. Draw Floating Combat Text
     floatingTexts.forEach(ft => {
       ctx.save();
+      const isNumber = /^[+-]?\d+$/.test(ft.text.trim());
       ctx.fillStyle = ft.color;
-      ctx.font = `bold ${Math.floor(16 * ft.scale)}px sans-serif`;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 4;
+      ctx.font = `900 ${Math.floor((isNumber ? 22 : 15) * ft.scale)}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeStyle = '#080808';
+      ctx.lineWidth = isNumber ? 4 : 2.5;
+      ctx.lineJoin = 'round';
       ctx.globalAlpha = Math.max(0, Math.min(1, ft.opacity));
-      ctx.fillText(ft.text, ft.x - 15, ft.y);
+      ctx.strokeText(ft.text, ft.x, ft.y);
+      ctx.fillText(ft.text, ft.x, ft.y);
       ctx.restore();
     });
 
@@ -678,14 +707,14 @@ export class MapRenderer {
     ctx.fill();
 
     // Procedural RO monster rendering
-    const bobbing = Math.sin(Date.now() / 150) * 2;
     const monsterId = m.data.id;
+    const bobbing = monsterId === 'lunatic' ? 0 : Math.sin(Date.now() / 150) * 2;
     const spriteIndex = MONSTER_SPRITES[monsterId] ?? (m.data.isMvp ? 23 : 1);
     const spriteName = SPRITE_NAMES[spriteIndex] || 'poring';
     const spriteSize = m.data.size === 'Grande' ? 82 : m.data.size === 'Pequeno' ? 64 : 72;
     const isMoving = m.state === 'MOVING' || m.state === 'CHASE';
     const pose = m.attackAnimationProgress > 0 ? 'attack' : isMoving ? 'walk' : 'idle';
-    const hasOfficialSprite = ['poring', 'lunatic', 'fabre', 'pupa'].includes(monsterId);
+    const hasOfficialSprite = ['poring', 'lunatic', 'fabre', 'pupa', 'poporing', 'spore', 'rocker'].includes(monsterId);
     const officialPose: OfficialPose = m.state === 'DEAD' ? 'death' : pose;
     const officialHeight = m.data.size === 'Grande' ? 62 : m.data.size === 'Pequeno' ? 46 : 54;
     const officialDrawn = hasOfficialSprite && drawOfficialEntity(
@@ -902,9 +931,9 @@ export class MapRenderer {
     // HP Bar
     const hpPct = Math.max(0, m.currentHp / m.data.hp);
     ctx.fillStyle = '#000';
-    ctx.fillRect(m.x - 18, m.y - 28, 36, 5);
+    ctx.fillRect(m.x - 18, m.y + 19, 36, 5);
     ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : '#ef4444';
-    ctx.fillRect(m.x - 17, m.y - 27, 34 * hpPct, 3);
+    ctx.fillRect(m.x - 17, m.y + 20, 34 * hpPct, 3);
 
     // Name tag
     ctx.fillStyle = m.isElite ? '#f0abfc' : '#fff';
@@ -912,7 +941,8 @@ export class MapRenderer {
     ctx.shadowColor = '#000';
     ctx.shadowBlur = 3;
     const label = m.isElite ? `★ ${m.data.name}` : m.data.name;
-    ctx.fillText(label, m.x - ctx.measureText(label).width / 2, m.y - 32);
+    ctx.textAlign = 'center';
+    ctx.fillText(label, m.x, m.y + 35);
 
     ctx.restore();
   }
@@ -937,7 +967,9 @@ export class MapRenderer {
     ctx.fill();
 
     // Knight sprite
-    const bob = state === 'MOVING' || state === 'CHASE' ? Math.sin(animFrame * 0.5) * 3 : 0;
+    // The official walk sequence already contains foot/body motion. Additional
+    // vertical bobbing made the whole character look like it was hopping.
+    const bob = 0;
     const isAttacking = state === 'ATTACKING' || state === 'CASTING';
     const pose = isAttacking && attackAnimationProgress > 0
       ? 'attack'

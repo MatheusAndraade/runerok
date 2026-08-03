@@ -226,7 +226,7 @@ export const GamePanels: React.FC<GamePanelsProps> = ({
                 </div>
               ))}
               <button className="ro-character-paperdoll ro-paperdoll-centered" onClick={onOpenHeadSelector} title="Alterar head">
-                <div className="ro-player-preview"><img className="ro-preview-body" src="/game-assets/official/knight/idle/down/0.png" alt="Knight" /><img className="ro-preview-head" src={`/game-assets/official/heads/head-${String(saveData.character.headStyle ?? 0).padStart(2, '0')}/down.png`} alt="Head" /></div><strong>Head</strong>
+                <div className="ro-player-preview"><img className="ro-preview-body" src="/game-assets/official/knight/idle/down/0.png" alt="Knight" /></div><strong>Head</strong>
               </button>
             </div>
             <div className="grid grid-cols-2 gap-1 content-start">
@@ -249,11 +249,6 @@ export const GamePanels: React.FC<GamePanelsProps> = ({
             <button className="ro-character-paperdoll" onClick={onOpenHeadSelector} title="Alterar head do personagem">
               <div className="ro-player-preview">
                 <img className="ro-preview-body" src="/game-assets/official/knight/idle/down/0.png" alt="Knight" />
-                <img
-                  className="ro-preview-head"
-                  src={`/game-assets/official/heads/head-${String(saveData.character.headStyle ?? 0).padStart(2, '0')}/down.png`}
-                  alt="Head selecionada"
-                />
               </div>
               <strong>Alterar Head</strong>
             </button>
